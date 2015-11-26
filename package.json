@@ -1,0 +1,23 @@
+{
+  "name": "bauhinia",
+  "version": "0.1.0",
+  "main": "main.js",
+  "description" : "bauhinia",
+  "productName" : "bauhinia",
+  "scripts": {
+    "dev": "electron ./app",
+    "clean": "rm -rf ./dist",
+    "clean:osx": "rm -rf ./dist/osx",
+    "clean:win": "rm -rf ./dist/win",
+    "build": "npm run clean && npm run build:osx && npm run build:win",
+    "build:osx": "npm run clean:osx && electron-packager ./app --platform=darwin --arch=x64 --version=0.30.2 --icon=assets/osx/panda.icns --out=dist/osx --sign=\"iPhone Developer: Zhifeng Zhou\" --overwrite bauhinia",
+    "build:win": "npm run clean:win && electron-packager ./app --icon=assets/win/panda.ico --out=dist/win --platform=win32 --arch=ia32 --version=0.30.2 --overwrite bauhinia",
+    "pack": "npm run pack:osx && npm run pack:win",
+    "pack:osx": "npm run build:osx && electron-builder dist/osx/bauhinia-darwin-x64/bauhinia.app --platform=osx --out=dist/osx --config=packager.json",
+    "pack:win": "npm run build:win && electron-builder dist/win/bauhinia-win32-ia32 --platform=win --out=\"dist/win\" --config=packager.json"
+  },
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-electron-installer": "^1.0.2"
+  }
+}
