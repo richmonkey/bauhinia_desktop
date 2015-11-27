@@ -90,7 +90,7 @@ var htmlLoyout = {
     buildImage: function (msg) {
         var html = [];
         html.push('<li class="chat-item"  data-id="' + msg.id + '">');
-        html.push('    <div class="message">');
+        html.push('    <div class="message ' + msg.cls + '">');
         html.push('        <div class="bubble"><p class="pre"><a href="' + msg.image + '" target="_blank">' +
             '<img class="image-thumb-body" src="' + msg.image + '" /></p></a>');
         html.push('           <span class="time">' + helper.toTime(msg.timestamp * 1000) + '</span>');
@@ -193,10 +193,8 @@ function appendMessage(msg) {
     m.ack = msg.ack;
     m.received = msg.received;
     if (loginUser.uid == msg.sender) {
-        console.log("message out");
         m.cls = "message-out";
     } else {
-        console.log("message in");
         m.cls = "message-in";
     }
     if (msg.contentObj.text) {
