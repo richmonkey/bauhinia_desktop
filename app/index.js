@@ -414,7 +414,7 @@ $(document).ready(function () {
         var target = parseInt($("#to_user").attr("data-uid"));
         var msg = $("#entry").val().replace("\n", "");
         if (!util.isBlank(msg)) {
-            sendTextMessage(msg);
+            sendTextMessage(msg, target);
         }
         return false;
     });
