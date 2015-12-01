@@ -32,8 +32,8 @@ console.log("app path:" + app.getAppPath());
 
 function createMainWindow() {
     var opts = {
-        width: 800, 
-        height: 600, 
+        width: 1024, 
+        height: 800, 
         'web-preferences': {'web-security': false}
     };
 
@@ -42,7 +42,7 @@ function createMainWindow() {
     //mainWindow.loadUrl("http://dev.gobelieve.io/");
     mainWindow.loadUrl('file://' + __dirname + '/index.html');
 
-    mainWindow.openDevTools();
+    //mainWindow.openDevTools();
 
     mainWindow.on('closed', function() {
         mainWindow = null;
