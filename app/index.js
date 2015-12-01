@@ -257,25 +257,39 @@ function showChat() {
     scrollDown();
 }
 
+function initLogin(token, expires, uid) {
+    var now = Math.floor(Date.now()/1000);
+    loginUser.uid = uid;
+    accessToken = token;
+    var t = (expires - now)*1000;
+    setTimeout(function() {
+        //todo 提示用户会话过期
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("expires");
+        localStorage.removeItem("uid");
+        localStorage.removeItem("sid");
+        location.reload();
+    }, t);
 
-function onLoginSuccess(result) {
-    console.log("login success user id:", result.uid,
-        " access token:", result.access_token,
-        " status code:", status);
-    loginUser.uid = result.uid;
-    accessToken = result.access_token;
-
-    im.accessToken = result.access_token;
+    im.accessToken = accessToken;
     im.start();
 
     setName(loginUser.name || helper.getPhone(loginUser.uid));
     showChat();
 
     getContactList()
+}
 
-    console.log("cookie:" + document.cookie);
-    util.setCookie("token", result.access_token, 3600);
-    console.log("cookie:" + document.cookie);
+function onLoginSuccess(result) {
+    console.log("login success user id:", result.uid,
+        " access token:", result.access_token,
+        " status code:", status);
+    var now = Math.floor(Date.now()/1000);
+    localStorage.accessToken = result.access_token;
+    localStorage.uid = result.uid;
+    localStorage.expires = now + result.expires_in;
+    localStorage.sid = result.sid;
+    initLogin(localStorage.accessToken, localStorage.expires, localStorage.uid);
 }
 
 
@@ -349,6 +363,10 @@ $(document).ready(function () {
     })
 
     node.exit.on('click', function () {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("expires");
+        localStorage.removeItem("uid");
+        localStorage.removeItem("sid");
         location.reload();
     });
 
@@ -401,20 +419,53 @@ $(document).ready(function () {
         return false;
     });
 
-    showLogin();
-    refreshQRCode(function(result) {
-        sid = result.sid;
-        var s = URL + "/qrcode/" + sid;
+    console.log("access token:" + localStorage.accessToken);
+    console.log("token expires:" + localStorage.expires);
+    console.log("uid:" + localStorage.uid)
+    var now = Math.floor(Date.now()/1000);
 
-        //$("#qrcode").src = s;
-        var n = document.getElementById("qrcode");
-        n.src = s;
+    if (localStorage.accessToken && 
+        localStorage.uid && 
+        localStorage.sid &&
+        now < localStorage.expires) {
+        sid = localStorage.sid
         console.log("sid:" + sid);
         qrcodeLogin(onLoginSuccess, 
                     function() {
-                        //二维码过期
-                        console.log("qrcode expires");
-                        $('.qrcode-timeout').removeClass('hide');
+                        showLogin();
+                        refreshQRCode(function(result) {
+                            sid = result.sid;
+                            var s = URL + "/qrcode/" + sid;
+                            
+                            //$("#qrcode").src = s;
+                            var n = document.getElementById("qrcode");
+                            n.src = s;
+                            console.log("sid:" + sid);
+                            qrcodeLogin(onLoginSuccess, 
+                                        function() {
+                                            //二维码过期
+                                            console.log("qrcode expires");
+                                            $('.qrcode-timeout').removeClass('hide');
+                                        });
+                        });
                     });
-    });
+    } else {
+        showLogin();
+        refreshQRCode(function(result) {
+            sid = result.sid;
+            var s = URL + "/qrcode/" + sid;
+            
+            //$("#qrcode").src = s;
+            var n = document.getElementById("qrcode");
+            n.src = s;
+            console.log("sid:" + sid);
+            qrcodeLogin(onLoginSuccess, 
+                        function() {
+                            //二维码过期
+                            console.log("qrcode expires");
+                            $('.qrcode-timeout').removeClass('hide');
+                        });
+        });
+
+    }
 });
