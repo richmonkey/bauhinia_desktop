@@ -1,12 +1,15 @@
+
 function IMDB() {
     this.messages = {}
+    this.msgLocalID = 1;
 }
 
 IMDB.prototype.saveMessage = function(uid, msg) {
     if (!this.messages[uid]) {
         this.messages[uid] = new Array()
     }
-
+    msg.msgLocalID = this.msgLocalID;
+    this.msgLocalID += 1;
     this.messages[uid].push(msg)
 }
 

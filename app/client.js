@@ -5,6 +5,9 @@ var URL = "http://gobelieve.io";
 var API_URL = "http://api.gobelieve.io";
 
 
+var unreadCount = {};
+
+
 var userDB = {
     users : new Array(),
     addUser : function(newUser) {
@@ -31,6 +34,62 @@ var userDB = {
     }
 }
 
+function showNotification(title, body) {
+    // Let's check if the browser supports notifications
+    if (!("Notification" in window)) {
+        console.log("This browser does not support desktop notification");
+    }
+
+    var options = {
+        body:body,
+    };
+
+    var notification = new Notification(title, options);
+    notification.onclick = function() {
+        console.log("notification on click");
+    };
+
+}
+
+function showMessageNotification(msg) {
+    var cid;
+    if (msg.sender == loginUser.uid) {
+        cid = msg.receiver;
+    } else {
+        cid = msg.sender;
+    }
+    var u = userDB.findUser(cid);
+    var title = ""
+    console.log("u name:" + u.name);
+    if (u && u.name) {
+        title = u.name;
+    }
+    
+    var content = "";
+    if (msg.contentObj.text) {
+        content = msg.contentObj.text;
+    } else if (msg.contentObj.audio) {
+        content = "一条语音";
+    } else if (msg.contentObj.image) {
+        content = "一张图片";
+    }
+
+    showNotification(title, content);
+
+}
+
+function setDockBadge() {
+    var total = 0;
+    for (var i in unreadCount) {
+        total += unreadCount[i];
+    }
+    console.log("unread count:" + total);
+    if (total > 0) {
+        ipc.sendSync('set-badge', "" + total);
+    } else {
+        ipc.sendSync('set-badge', "");
+    }
+}
 
 var observer = {
     handlePeerMessage: function (msg) {
@@ -50,11 +109,11 @@ var observer = {
             cid = msg.sender;
         }
 
+        imDB.saveMessage(cid, msg);
         if (cid == peer) {
             addMessage(msg);
         }
 
-        imDB.saveMessage(cid, msg);
         var user = {uid:cid};
         var inserted = userDB.addUser(user);
         if (inserted) {
@@ -62,6 +121,28 @@ var observer = {
         }
         if (msg.sender != loginUser.uid) {
             process.msgTip(cid);
+            if (player.paused) {
+                console.log("play.....");
+                player.play();
+            } else {
+                console.log("player is playing...");
+            }
+        } else {
+            imDB.ackMessage(cid, msg.msgLocalID);
+            process.msgACK(msg.msgLocalID,cid);
+        }
+
+        var win = remote.getCurrentWindow();
+        if ((!win.isFocused() || cid != peer) && 
+            msg.sender != loginUser.uid) {
+            if (cid in unreadCount) {
+                unreadCount[cid] += 1;
+            } else {
+                unreadCount[cid] = 1;
+            }
+
+            showMessageNotification(msg);
+            setDockBadge();
         }
     },
 
@@ -130,7 +211,7 @@ function qrcodeLogin(success, error) {
                 if (t > QRCODE_EXPIRE) {
                     error();
                 } else {
-                    qrcodeLogin(success);
+                    qrcodeLogin(success, error);
                 }
             } else {
                 error();

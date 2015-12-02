@@ -1,17 +1,21 @@
 var capture = require("mac-screen-capture")
 var clipboard = require("clipboard")
+var remote = require('remote');
+var app = remote.require('app');
+var ipc = require('ipc');
 
 var accessToken;
 var loginUser = {};
 
 //当前会话的uid
 var peer = 0;
-var msgLocalID = 1;
+
 
 var im;
 var imDB = new IMDB();
-var QRCODE_EXPIRE = 3 * 60 * 1000;
+var QRCODE_EXPIRE = 3*60*1000;
 var startup = new Date();
+var player = null;
 
 im = new IMService(observer);
 
@@ -253,7 +257,6 @@ function showLogin() {
 function showChat() {
     $("#loginView").addClass('hide').hide();
     $("#chat").removeClass('hide').show();
-    //$("entry").focus();
     scrollDown();
 }
 
@@ -302,7 +305,7 @@ function startCapture(target) {
             }
             var temp = clipboard.readImage();
             var b64 = temp.toDataUrl();
-            uploadImage(b64, 
+            uploadImage(b64,
                         function(url) {
                             sendImageMessage(url, target);
                         },
@@ -324,7 +327,6 @@ function sendImageMessage(url, target) {
         sender: loginUser.uid,
         receiver: target,
         content: content,
-        msgLocalID: msgLocalID++,
         timestamp: (now.getTime() / 1000)
     };
     message.contentObj = obj;
@@ -343,24 +345,28 @@ function sendTextMessage(text, target) {
         sender: loginUser.uid,
         receiver: target,
         content: textMsg,
-        msgLocalID: msgLocalID++,
         timestamp: (now.getTime() / 1000)
     };
     message.contentObj = obj;
     if (im.connectState == IMService.STATE_CONNECTED) {
         imDB.saveMessage(target, message);
         im.sendPeerMessage(message);
-        $("#entry").val(""); 
+        $("#entry").val("");
         addMessage(message);
         $("#chatHistory").show();
     }
 }
 
 $(document).ready(function () {
+    player = document.getElementById("player");
     $('#clipboard').on('click',function(){
         var target = parseInt($("#to_user").attr("data-uid"));
         startCapture(target);
     })
+
+    $('#reload').on("click", function () {
+        location.reload();
+    });
 
     node.exit.on('click', function () {
         localStorage.removeItem("accessToken");
@@ -406,6 +412,9 @@ $(document).ready(function () {
         }
         //设置当前会话uid
         peer = uid;
+        unreadCount[peer] = 0;
+
+        setDockBadge();
     });
 
     //deal with chat mode.
@@ -424,24 +433,21 @@ $(document).ready(function () {
     console.log("uid:" + localStorage.uid)
     var now = Math.floor(Date.now()/1000);
 
-    if (localStorage.accessToken && 
-        localStorage.uid && 
+    if (localStorage.accessToken &&
+        localStorage.uid &&
         localStorage.sid &&
         now < localStorage.expires) {
         sid = localStorage.sid
         console.log("sid:" + sid);
-        qrcodeLogin(onLoginSuccess, 
+        qrcodeLogin(onLoginSuccess,
                     function() {
                         showLogin();
                         refreshQRCode(function(result) {
                             sid = result.sid;
                             var s = URL + "/qrcode/" + sid;
-                            
-                            //$("#qrcode").src = s;
-                            var n = document.getElementById("qrcode");
-                            n.src = s;
+                            $("#qrcode").attr('src', s);
                             console.log("sid:" + sid);
-                            qrcodeLogin(onLoginSuccess, 
+                            qrcodeLogin(onLoginSuccess,
                                         function() {
                                             //二维码过期
                                             console.log("qrcode expires");
@@ -454,12 +460,9 @@ $(document).ready(function () {
         refreshQRCode(function(result) {
             sid = result.sid;
             var s = URL + "/qrcode/" + sid;
-            
-            //$("#qrcode").src = s;
-            var n = document.getElementById("qrcode");
-            n.src = s;
+            $("#qrcode").attr('src', s);
             console.log("sid:" + sid);
-            qrcodeLogin(onLoginSuccess, 
+            qrcodeLogin(onLoginSuccess,
                         function() {
                             //二维码过期
                             console.log("qrcode expires");

@@ -8,16 +8,19 @@
     </script>
 </head>
 <body>
+  <audio id="player">
+    <source src="message.mp3" type="audio/mpeg">
+      Your browser does not support the audio element.
+  </audio>
+
 <div id="loginView" class="app-wrap full-wrap hide">
     <h1>羊蹄甲</h1>
 
     <div class="img">
-        <div/ class="qrcode-timeout hide">
+        <div class="qrcode-timeout hide" id="reload">
             <div class="circle">
-                <a href="/">
-                    <div class="icon-reset"></div>
-                    <div class="reload" id="reload">二维码超时，点击刷新</div>
-                </a>
+              <div class="icon-reset"></div>
+              <div class="reload">二维码超时，点击刷新</div>
             </div>
         </div>
         <img id="qrcode"/>
