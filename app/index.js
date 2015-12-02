@@ -4,20 +4,20 @@ var remote = require('remote');
 var app = remote.require('app');
 var ipc = require('ipc');
 
+
+var sid = "";
 var accessToken;
+
 var loginUser = {};
+var unreadCount = {};
 
 //当前会话的uid
 var peer = 0;
 
-
-var im;
+var im = new IMService(observer);
 var imDB = new IMDB();
-var QRCODE_EXPIRE = 3*60*1000;
 var startup = new Date();
 var player = null;
-
-im = new IMService(observer);
 
 var helper = {
     toTime: function (ts) {
@@ -53,93 +53,6 @@ var helper = {
         }
     },
 };
-var htmlLoyout = {
-    buildUser: function (user) {
-        var html = [];
-
-        html.push('<li data-uid="' + user.uid + '">');
-        if (user.avatar) {
-            html.push('    <img src="' + helper.getUserAvatar(user) + '" class="avatar" alt=""/>');
-        } else {
-            html.push('    <img src="images/_avatar.png" class="avatar" alt=""/>');
-        }
-        if (helper.getUserName(user)) {
-            html.push('    <span class="name">' + helper.getUserName(user) + '</span>');
-        }else{
-            html.push('    <span class="uid">' + helper.getPhone(user.uid) + '</span>');
-        }
-        html.push('    <span class="num">' + (user.num || '') + '</span>');
-        html.push('</li>');
-        return html.join('');
-    },
-    buildText: function (msg) {
-        var html = [];
-        html.push('<li class="chat-item" data-id="' + msg.id + '">');
-        html.push('    <div class="message ' + msg.cls + '">');
-        html.push('        <div class="bubble"><p class="pre">' + msg.text + '</p>');
-        html.push('           <span class="time">' + helper.toTime(msg.timestamp * 1000) + '</span>');
-
-        if (msg.ack) {
-            html.push('   <span class="ack"></span>');
-        }
-        if (msg.received) {
-            html.push('   <span class="rack"></span>');
-        }
-
-        html.push('        </div>');
-        html.push('    </div>');
-        html.push('</li>');
-        return html.join('');
-    },
-    buildImage: function (msg) {
-        var html = [];
-        html.push('<li class="chat-item"  data-id="' + msg.id + '">');
-        html.push('    <div class="message ' + msg.cls + '">');
-        html.push('        <div class="bubble"><p class="pre"><a href="' + msg.image + '" target="_blank">' +
-            '<img class="image-thumb-body" src="' + msg.image + '" /></p></a>');
-        html.push('           <span class="time">' + helper.toTime(msg.timestamp * 1000) + '</span>');
-
-        if (msg.ack) {
-            html.push('   <span class="ack"></span>');
-        }
-        if (msg.received) {
-            html.push('   <span class="rack"></span>');
-        }
-
-        html.push('        </div>');
-        html.push('    </div>');
-        html.push('</li>');
-        return html.join('');
-    },
-    buildAudio: function (msg) {
-        var html = [];
-        html.push('<li class="chat-item"  data-id="' + msg.id + '">');
-        var audio_url = msg.audio.url + ".mp3";
-        html.push('<li class="chat-item">');
-        html.push('  <div class="message ' + msg.cls + '">');
-        html.push('     <div class="bubble">');
-        html.push('       <p class="pre"><audio  controls="controls" src="' + audio_url + '"></audio></p>');
-        html.push('       <span class="time">' + helper.toTime(msg.timestamp * 1000) + '</span>');
-
-        if (msg.ack) {
-            html.push('   <span class="ack"></span>');
-        }
-        if (msg.received) {
-            html.push('   <span class="rack"></span>');
-        }
-
-        html.push('     </div>');
-        html.push('  </div>');
-        html.push('</li>');
-        return html.join('');
-    },
-    buildACK: function () {
-        return '<span class="ack"></span>';
-    },
-    buildRACK: function () {
-        return '<span class="rack"></span>';
-    }
-};
 
 var node = {
     chatHistory: $("#chatHistory ul"),
@@ -150,15 +63,6 @@ var node = {
 var process = {
     playAudio: function () {
 
-    },
-    appendAudio: function (m) {
-        node.chatHistory.append(htmlLoyout.buildAudio(m));
-    },
-    appendText: function (m) {
-        node.chatHistory.append(htmlLoyout.buildText(m));
-    },
-    appendImage: function (m) {
-        node.chatHistory.append(htmlLoyout.buildImage(m));
     },
     msgTip: function (uid) {
         var userDom = node.usersList.find('li[data-uid="' + uid + '"]'),
@@ -177,7 +81,7 @@ var process = {
         }
     },
     msgACK: function (msgID, uid) {
-        node.chatHistory.find('li[data-id="' + msgID + '"] .bubble').append(htmlLoyout.buildACK());
+        appComponent.chatHistory.ackMessage(msgID, uid);
     },
 };
 
@@ -186,37 +90,9 @@ function scrollDown() {
     $("#entry").text('').focus();
 }
 
-function appendMessage(msg) {
-    var time = new Date();
-    var m = {};
-    m.id = msg.msgLocalID;
-    if (msg.timestamp) {
-        time.setTime(msg.timestamp * 1000);
-        m.timestamp = msg.timestamp;
-    }
-    m.ack = msg.ack;
-    m.received = msg.received;
-    if (loginUser.uid == msg.sender) {
-        m.cls = "message-out";
-    } else {
-        m.cls = "message-in";
-    }
-    if (msg.contentObj.text) {
-        m.text = util.toStaticHTML(msg.contentObj.text);
-        process.appendText(m);
-    } else if (msg.contentObj.audio) {
-        m.audio = msg.contentObj.audio;
-        process.appendAudio(m);
-    } else if (msg.contentObj.image) {
-        m.image = msg.contentObj.image;
-        process.appendImage(m);
-    }
-    console.log("message sender:", msg.sender, " receiver:", msg.receiver);
-}
-
 // add message on board
 function addMessage(msg) {
-    appendMessage(msg);
+    appComponent.chatHistory.addMessage(msg);
     scrollDown();
 }
 
@@ -280,7 +156,8 @@ function initLogin(token, expires, uid) {
     setName(loginUser.name || helper.getPhone(loginUser.uid));
     showChat();
 
-    getContactList()
+    console.log("app:" + appComponent);
+    appComponent.loadData();
 }
 
 function onLoginSuccess(result) {
@@ -337,6 +214,7 @@ function sendImageMessage(url, target) {
         $("#chatHistory").show();
     }
 }
+
 function sendTextMessage(text, target) {
     var now = new Date();
     var obj = {"text": text};
@@ -402,14 +280,12 @@ $(document).ready(function () {
         main.find('.chat-wrap').removeClass('hide');
         _this.addClass('active').siblings().removeClass('active');
         _this.find('.num').text('');
-        node.chatHistory.html("");
+
         ///读取聊天记录添加到列表
         var messages = imDB.loadUserMessage(uid);
-        for (var i in messages) {
-            var msg = messages[i];
-            console.log("message:", msg);
-            appendMessage(msg)
-        }
+        appComponent.chatHistory.setHistoryMessage(messages);
+        scrollDown();
+
         //设置当前会话uid
         peer = uid;
         unreadCount[peer] = 0;

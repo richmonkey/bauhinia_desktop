@@ -3,10 +3,9 @@
 
 var URL = "http://gobelieve.io";
 var API_URL = "http://api.gobelieve.io";
+var QRCODE_EXPIRE = 3*60*1000;
 
-
-var unreadCount = {};
-
+var appComponent;
 
 var userDB = {
     users : new Array(),
