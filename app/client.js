@@ -114,10 +114,8 @@ var observer = {
         }
 
         var user = {uid:cid};
-        var inserted = userDB.addUser(user);
-        if (inserted) {
-            addUser(user);
-        }
+        appComponent.contactList.addUser(user);
+
         if (msg.sender != loginUser.uid) {
             process.msgTip(cid);
             if (player.paused) {

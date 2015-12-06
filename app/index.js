@@ -38,9 +38,7 @@ var helper = {
     },
     getUserAvatar: function (user) {
         if (user.avatar) {
-            var parser = document.createElement('a');
-            parser.href = user.avatar;
-            return parser.pathname;
+            return user.avatar;
         } else {
             return '';
         }
@@ -114,10 +112,6 @@ function tip(type, name) {
             break;
     }
     var pop = new Pop(title, tip);
-}
-
-function addUser(user) {
-    node.usersList.prepend(htmlLoyout.buildUser(user));
 }
 
 function setName(username) {

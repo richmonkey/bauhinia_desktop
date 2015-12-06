@@ -26,6 +26,15 @@ var ContactList = React.createClass({
         });
     },
 
+    addUser:function(user) {
+        var inserted = userDB.addUser(user);
+        if (inserted) {
+            var data = this.state.data;
+            data.push(user);
+            this.setState({data:data});
+        }
+    },
+
     render: function() {
         var nodes = []
         var users = this.state.data;
