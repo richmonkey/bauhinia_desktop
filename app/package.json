@@ -3,10 +3,6 @@
   "version": "0.1.0",
   "main": "main.js",
   "dependencies": {
-    "babel-preset-react": "^6.1.18",
-    "babelify": "^7.2.0",
-    "mac-screen-capture": "1.0.7",
-    "react": "^0.14.3",
-    "react-dom": "^0.14.3"
+    "mac-screen-capture": "1.0.7"
   }
 }
