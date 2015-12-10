@@ -261,11 +261,13 @@ IMService.prototype.send = function (cmd, body) {
     htonl(buf, pos, this.seq);
     pos += 4;
 
-    buf[pos] = cmd
+    buf[pos] = cmd;
     pos++;
     buf[pos] = IMService.VERSION;
     pos++;
-    buf.fill(2, pos, pos + 2);
+    buf[pos] = 0;
+    buf[pos+1] = 0;
+    //buf.fill(2, pos, pos + 2);
     pos += 2;
 
     buf.set(body, pos);

@@ -131,11 +131,11 @@ function showChat() {
 }
 
 function initLogin(token, expires, uid) {
-    var now = Math.floor(Date.now()/1000);
+    var now = Math.floor(Date.now() / 1000);
     loginUser.uid = uid;
     accessToken = token;
-    var t = (expires - now)*1000;
-    setTimeout(function() {
+    var t = (expires - now) * 1000;
+    setTimeout(function () {
         //todo 提示用户会话过期
         localStorage.removeItem("accessToken");
         localStorage.removeItem("expires");
@@ -158,7 +158,7 @@ function onLoginSuccess(result) {
     console.log("login success user id:", result.uid,
         " access token:", result.access_token,
         " status code:", status);
-    var now = Math.floor(Date.now()/1000);
+    var now = Math.floor(Date.now() / 1000);
     localStorage.accessToken = result.access_token;
     localStorage.uid = result.uid;
     localStorage.expires = now + result.expires_in;
@@ -169,45 +169,43 @@ function onLoginSuccess(result) {
 
 function startCapture(target) {
     capture.captureScreen().then(
-        function(code) {
+        function (code) {
             console.log("resolve code:" + code);
             if (code != 0) {
                 return;
             }
             var temp = clipboard.readImage();
             var b64 = temp.toDataUrl();
+            var now = new Date();
+            var obj = {"image": b64};
+            var msg = {
+                sender: loginUser.uid,
+                receiver: target,
+                content: JSON.stringify(obj),
+                timestamp: (now.getTime() / 1000)
+            };
+            msg.contentObj = obj;
+            imDB.saveMessage(target, msg);
+            addMessage(msg);
+            $("#chatHistory").show();
             uploadImage(b64,
-                        function(url) {
-                            sendImageMessage(url, target);
-                        },
-                        function() {
-                        }
-                       );
-        }, function(code) {
+                function (url) {
+                    var obj = {"image": url};
+                    msg.content = JSON.stringify(obj);
+                    msg.contentObj = obj;
+                    if (im.connectState == IMService.STATE_CONNECTED) {
+                        im.sendPeerMessage(msg);
+                    }
+                },
+                function () {
+                    console.log('error');
+                }
+            );
+        }, function (code) {
             console.log("reject code:" + code);
         });
 }
 
-
-function sendImageMessage(url, target) {
-    console.log("target:" + target);
-    var now = new Date();
-    var obj = {"image": url};
-    var content = JSON.stringify(obj);
-    var message = {
-        sender: loginUser.uid,
-        receiver: target,
-        content: content,
-        timestamp: (now.getTime() / 1000)
-    };
-    message.contentObj = obj;
-    if (im.connectState == IMService.STATE_CONNECTED) {
-        imDB.saveMessage(target, message);
-        im.sendPeerMessage(message);
-        addMessage(message);
-        $("#chatHistory").show();
-    }
-}
 
 function sendTextMessage(text, target) {
     var now = new Date();
@@ -231,7 +229,7 @@ function sendTextMessage(text, target) {
 
 $(document).ready(function () {
     player = document.getElementById("player");
-    $('#clipboard').on('click',function(){
+    $('#clipboard').on('click', function () {
         var target = parseInt($("#to_user").attr("data-uid"));
         startCapture(target);
     })
@@ -301,7 +299,7 @@ $(document).ready(function () {
     console.log("access token:" + localStorage.accessToken);
     console.log("token expires:" + localStorage.expires);
     console.log("uid:" + localStorage.uid)
-    var now = Math.floor(Date.now()/1000);
+    var now = Math.floor(Date.now() / 1000);
 
     if (localStorage.accessToken &&
         localStorage.uid &&
@@ -310,34 +308,34 @@ $(document).ready(function () {
         sid = localStorage.sid
         console.log("sid:" + sid);
         qrcodeLogin(onLoginSuccess,
-                    function() {
-                        showLogin();
-                        refreshQRCode(function(result) {
-                            sid = result.sid;
-                            var s = URL + "/qrcode/" + sid;
-                            $("#qrcode").attr('src', s);
-                            console.log("sid:" + sid);
-                            qrcodeLogin(onLoginSuccess,
-                                        function() {
-                                            //二维码过期
-                                            console.log("qrcode expires");
-                                            $('.qrcode-timeout').removeClass('hide');
-                                        });
+            function () {
+                showLogin();
+                refreshQRCode(function (result) {
+                    sid = result.sid;
+                    var s = URL + "/qrcode/" + sid;
+                    $("#qrcode").attr('src', s);
+                    console.log("sid:" + sid);
+                    qrcodeLogin(onLoginSuccess,
+                        function () {
+                            //二维码过期
+                            console.log("qrcode expires");
+                            $('.qrcode-timeout').removeClass('hide');
                         });
-                    });
+                });
+            });
     } else {
         showLogin();
-        refreshQRCode(function(result) {
+        refreshQRCode(function (result) {
             sid = result.sid;
             var s = URL + "/qrcode/" + sid;
             $("#qrcode").attr('src', s);
             console.log("sid:" + sid);
             qrcodeLogin(onLoginSuccess,
-                        function() {
-                            //二维码过期
-                            console.log("qrcode expires");
-                            $('.qrcode-timeout').removeClass('hide');
-                        });
+                function () {
+                    //二维码过期
+                    console.log("qrcode expires");
+                    $('.qrcode-timeout').removeClass('hide');
+                });
         });
 
     }
