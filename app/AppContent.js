@@ -387,8 +387,8 @@ var AppContent = React.createClass({
     
     //截屏
     onClipboard:function() {
-        var target = parseInt($("#to_user").attr("data-uid"));
-        this.startCapture(target);
+        var peer = this.props.conversation.cid;
+        this.startCapture(peer);
     },
 
     render: function() {
