@@ -333,7 +333,6 @@ var AppContent = React.createClass({
     componentWillUnmount: function() {
     },
     
-
     sendTextMessage:function(text, target) {
         var now = new Date();
         var obj = {"text": text};
@@ -361,14 +360,10 @@ var AppContent = React.createClass({
         }
     },
 
-
-
-
     onKeyPress:function(e) {
         if (e.key != 'Enter') return;
 
         var target = this.props.conversation.cid;
-        //var target = parseInt($("#to_user").attr("data-uid"));
         var msg = $("#entry").val().replace("\n", "");
         if (!util.isBlank(msg)) {
             this.sendTextMessage(msg, target);
