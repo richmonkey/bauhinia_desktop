@@ -43,39 +43,6 @@ function decodeBase64Image(dataString) {
     return response;
 }
 
-function uploadImage(data, success, fail) {
-
-    var url = API_URL + "/images";
-    var image = decodeBase64Image(data);
-    var imageData = image.data;
-    var imageType = image.type;
-    var headers = {
-        "Authorization": "Bearer " + accessToken,
-        "Content-Type": imageType
-    };
-
-    $.ajax({
-        url: url,
-        method: "POST",
-        headers: headers,
-        data:imageData,
-        processData:false,
-        success: function (result, status, xhr) {
-            if (status == "success") {
-                console.log("url:" + result + result.src_url);
-                success(result.src_url);
-            } else {
-                fail();
-            }
-        },
-        error: function (xhr, err) {
-            console.log("upload image error:", err, xhr.status, xhr);
-            fail();
-        }
-    });
-}
-
-
 function setDockBadge(total) {
     console.log("unread count:" + total);
     if (total > 0) {
@@ -115,9 +82,7 @@ var AppContent = React.createClass({
 
         this.im.accessToken = token;
         this.im.start();
-
-        var loginUser = {uid:uid};
-        this.props.dispatch({type:"set_login_user", loginUser:loginUser});
+   
         var convs = conversationDB.getConversationList();
         console.log("convs:" + convs + " " + convs.length);
         this.props.dispatch({type:"set_conversations", conversations:convs});
@@ -170,9 +135,44 @@ var AppContent = React.createClass({
     },
 
 
+    uploadImage: function(data, success, fail) {
+
+        var url = API_URL + "/images";
+        var image = decodeBase64Image(data);
+        var imageData = image.data;
+        var imageType = image.type;
+        var headers = {
+            "Authorization": "Bearer " + this.props.loginUser.token,
+            "Content-Type": imageType
+        };
+
+        $.ajax({
+            url: url,
+            method: "POST",
+            headers: headers,
+            data:imageData,
+            processData:false,
+            success: function (result, status, xhr) {
+                if (status == "success") {
+                    console.log("url:" + result + result.src_url);
+                    success(result.src_url);
+                } else {
+                    fail();
+                }
+            },
+            error: function (xhr, err) {
+                console.log("upload image error:", err, xhr.status, xhr);
+                fail();
+            }
+        });
+    },
+
+
+
+
     startCapture: function(target) {
         capture.captureScreen().then(
-            function (code) {
+             (code) => {
                 console.log("resolve code:" + code);
                 if (code != 0) {
                     return;
@@ -188,22 +188,23 @@ var AppContent = React.createClass({
                     timestamp: (now.getTime() / 1000)
                 };
                 msg.contentObj = obj;
-                this.imDB.saveMessage(target, msg);
-                addMessage(msg);
-                $("#chatHistory").show();
-                uploadImage(b64,
-                            function (url) {
-                                var obj = {"image": url};
-                                msg.content = JSON.stringify(obj);
-                                msg.contentObj = obj;
-                                if (this.im.connectState == IMService.STATE_CONNECTED) {
-                                    this.im.sendPeerMessage(msg);
+                this.imDB.saveMessage(target, msg, () => {
+                    this.props.dispatch({type:"add_message", message:msg});
+                    this.uploadImage(b64,
+                                (url) => {
+                                    var obj = {"image": url};
+                                    msg.content = JSON.stringify(obj);
+                                    msg.contentObj = obj;
+                                    if (this.im.connectState == IMService.STATE_CONNECTED) {
+                                        this.im.sendPeerMessage(msg);
+                                    }
+                                },
+                                function () {
+                                    console.log('error');
                                 }
-                            },
-                            function () {
-                                console.log('error');
-                            }
-                );
+                    );
+                });
+
             }, function (code) {
                 console.log("reject code:" + code);
             });
