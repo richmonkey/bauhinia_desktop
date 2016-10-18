@@ -82,9 +82,22 @@ function loginUserReducer(state={}, action) {
     }
 }
 
+function qrcodeReducer(state={}, action) {
+    switch(action.type) {
+        case "set_qrcode_timeout":
+            return Object.assign({}, state, {timeout:action.timeout});
+        case "set_qrcode_url":
+            return Object.assign({}, state, {url:action.url});
+        default:
+            console.log("default qrcode state:" + state.url + " " + state.timeout);
+            return state;
+    }
+}
+
 var appReducer = combineReducers({conversations:conversationsReducer,
                                   messages:messagesReducer, 
                                   contacts:contactsReducer,
                                   conversation:conversationReducer,
-                                  loginUser:loginUserReducer});
+                                  loginUser:loginUserReducer,
+                                  qrcode:qrcodeReducer});
 module.exports = appReducer;

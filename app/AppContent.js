@@ -106,7 +106,9 @@ var AppContent = React.createClass({
         });
     },
 
-    loadData: function(uid, token) {
+    loadData: function() {
+        var uid = this.props.loginUser.uid;
+        var token = this.props.loginUser.token;
         var filename = path.join(app.getPath("userData"), "messages_" + uid + ".db");
         console.log("message db file name:" + filename);
         this.imDB = new IMDB(filename);
@@ -318,7 +320,13 @@ var AppContent = React.createClass({
         this.im = new IMService(this);
         return {};
     },
+
+    componentWillMount: function() {
+        this.loadData();
+    },
+
     componentDidMount: function() {
+
     },
 
     componentWillUnmount: function() {
