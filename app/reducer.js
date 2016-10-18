@@ -89,15 +89,21 @@ function qrcodeReducer(state={}, action) {
         case "set_qrcode_url":
             return Object.assign({}, state, {url:action.url});
         default:
-            console.log("default qrcode state:" + state.url + " " + state.timeout);
             return state;
     }
 }
 
-var appReducer = combineReducers({conversations:conversationsReducer,
-                                  messages:messagesReducer, 
-                                  contacts:contactsReducer,
-                                  conversation:conversationReducer,
-                                  loginUser:loginUserReducer,
-                                  qrcode:qrcodeReducer});
+
+//do not use combineReducers ignore init state of createStore
+function appReducer(state={}, action) {
+    return {
+        conversations:conversationsReducer(state.conversations, action),
+        messages:messagesReducer(state.messages, action),
+        contacts:contactsReducer(state.contacts, action),
+        conversation:conversationReducer(state.conversation, action),
+        loginUser:loginUserReducer(state.loginUser, action),
+        qrcode:qrcodeReducer(state.qrcode, action)
+    };
+}
+
 module.exports = appReducer;

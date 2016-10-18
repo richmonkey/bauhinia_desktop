@@ -54,7 +54,8 @@ var initState = {
     //当前会话
     conversation:{},
     messages:[],
-    loginUser:{}
+    loginUser:{},
+    qrcode:{timeout:false}
 };
 var store = createStore(appReducer, initState);
 
