@@ -54,12 +54,22 @@ var ConversationList = React.createClass({
         for (var i in convs) {
             var conv = convs[i];
             console.log("unread:" + conv.unread);
-            var className = "name";
-            var name = helper.getPhone(conv.cid);
+            var u = userDB.findUser(conv.cid);
+            var name = "";
+            if (u && u.name) {
+                name = u.name
+            } else {
+                name = helper.getPhone(conv.cid);
+            }
+
+            var avatar = "images/_avatar.png";
+            if (u && u.avatar) {
+                avatar = u.avatar;
+            }
             var t = (
                 <li onClick={this.onClick.bind(this, conv.cid)} data-uid={conv.cid} key={conv.cid}>
-                    <img src={"images/_avatar.png"} className="avatar" alt=""/>
-                    <span className={className}>{name}</span>
+                    <img src={avatar} className="avatar" alt=""/>
+                    <span className="name">{name}</span>
                     <span className="num">{conv.unread||''}</span>
                 </li>
             );  

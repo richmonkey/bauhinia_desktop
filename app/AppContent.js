@@ -94,10 +94,10 @@ var AppContent = React.createClass({
             headers: {"Authorization": "Bearer " + accessToken},
             success: function(data) {
                 console.log("users:" + typeof(data));
-                //for (var i in data) {
-                //    var contact = data[i];
-                    //userDB.addUser(contact);
-                //}
+                for (var i in data) {
+                    var contact = data[i];
+                    userDB.addUser(contact);
+                }
                 this.props.dispatch({type:"set_contacts", contacts:data});
             }.bind(this),
             error: function(xhr, status, err) {
@@ -392,8 +392,19 @@ var AppContent = React.createClass({
 
     render: function() {
         var name = "";
+        var avatar = "images/_avatar.png";
         if (this.props.conversation.cid) {
-            name = helper.getPhone(this.props.conversation.cid);
+            var u = userDB.findUser(this.props.conversation.cid);
+            var name = "";
+            if (u && u.name) {
+                name = u.name
+            } else {
+                name = helper.getPhone(this.props.conversation.cid);
+            }
+
+            if (u && u.avatar) {
+                avatar = u.avatar;
+            }
         }
 
         var loginUser = this.props.loginUser;
@@ -419,7 +430,7 @@ var AppContent = React.createClass({
                         请选择联系人
                     </div>
                     <div className="pane-header pane-chat-header">
-                        <img src="images/_avatar.png" id="to_user_avatar" className="avatar" alt=""/>
+                        <img src={avatar} id="to_user_avatar" className="avatar" alt=""/>
                         <div className="name" id="to_user">{name}</div>
                     </div>
                     <ChatHistory/>
