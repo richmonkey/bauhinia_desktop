@@ -1,250 +1,196 @@
 var React = require('react');
 var ReactDOM = require('react-dom');
 
-var ContactList = React.createClass({
-    getInitialState: function() {
-        return {data: []};
-    },
+var redux = require('redux');
+var createStore = redux.createStore;
+var combineReducers = redux.combineReducers;
+var redux = require('react-redux')
+var Provider = redux.Provider;
+var connect = redux.connect;
 
-    loadData:function() {
-        console.log("get user list...");
-        $.ajax({
-            url: URL+"/users",
-            dataType: 'json',
-            headers: {"Authorization": "Bearer " + accessToken},
-            success: function(data) {
-                console.log("users:" + typeof(data));
-                for (var i in data) {
-                    var contact = data[i];
-                    userDB.addUser(contact);
-                }
-                this.setState({data: data});
-            }.bind(this),
-            error: function(xhr, status, err) {
-                console.error("/users", status, err.toString());
-            }.bind(this)
-        });
-    },
 
-    addUser:function(user) {
-        var inserted = userDB.addUser(user);
-        if (inserted) {
-            var data = this.state.data;
-            data.push(user);
-            this.setState({data:data});
-        }
-    },
 
-    render: function() {
-        var nodes = []
-        var users = this.state.data;
-        for (var i in users) {
-            var user = users[i];
+var remote = require('remote');
+var app = remote.require('app');
+var ipc = require('ipc');
+var path = require('path');
 
-            var className = "name";
-            var name = helper.getUserName(user);
-            if (!name) {
-                className = "uid";
-                name = helper.getPhone(user.uid);
-            }
-            var t = (
-                <li data-uid={user.uid} key={user.uid}>
-                    <img src={user.avatar?helper.getUserAvatar(user):"images/_avatar.png"} className="avatar" alt=""/>
-                    <span className={className}>{name}</span>
-                    <span className="num">{user.num||''}</span>
-                </li>
-            );  
-            nodes.push(t);
-        }
-        return (
-            <ul id="usersList">
-                {nodes}
-            </ul>
-        );        
-    }
-});
+var AppContent = require("./AppContent.js");
+var appReducer = require("./reducer");
 
-var htmlLayout = {
-    buildText: function (msg) {
-        return (
-            <li className="chat-item" key={msg.msgLocalID} data-id={msg.id}>
-                <div className={"message " + msg.cls}>
-                    <div className="bubble">
-                        <p className="pre">{msg.text}</p>
-                        <span className="time">{helper.toTime(msg.timestamp * 1000)}</span>
-                        {msg.ack ? <span className="ack"/> : <div/>}
-                    </div>
-                </div>
-             </li>
-        );
-    },
-    buildImage: function (msg) {
-        return (
-            <li className="chat-item" key={msg.msgLocalID} data-id={msg.id}>
-                <div className={"message " + msg.cls}>
-                    <div className="bubble">
-                        <p className="pre">
-                           <a href={msg.image} target="_blank">
-                           <img className="image-thumb-body" src={msg.image} />
-                           </a>
-                        </p>
-                        <span className="time">{helper.toTime(msg.timestamp * 1000)}</span>
-                        {msg.ack ? <span className="ack"/> : <div/>}
-                     </div>
-                </div>
-            </li>
-        );
-    },
 
-    buildAudio: function (msg) {
-        var audio_url = msg.audio.url + ".mp3";
-        return (
-            <li className="chat-item" key={msg.msgLocalID} data-id={msg.id}>
-                <div className={"message"+msg.cls}>
-                    <div className="bubble">
-                         <p className="pre">
-                             <audio  controls="controls" src={audio_url}/>
-                         </p>
-                         <span className="time">{helper.toTime(msg.timestamp * 1000)}</span>
-                         {msg.ack ? <span className="ack"/> : <div/>}
-                    </div>
-                 </div>
-             </li>
-        );
-    },
+//var URL = "http://dev.gobelieve.io";
+//var API_URL = "http://192.168.33.10";
+
+var URL = "http://gobelieve.io";
+var API_URL = "http://api.gobelieve.io";
+var QRCODE_EXPIRE = 3*60*1000;
+
+
+var sid = "";
+var accessToken;
+
+var im = null;
+
+var startup = new Date();
+var player = null;
+
+var appComponent = null;
+
+
+function bindAppContent(c) {
+    console.log("bind app content:" + c);
+    appComponent = c.getWrappedInstance();
+}
+
+var initState = {
+    conversations:[],
+    contacts:[],
+    //当前会话
+    conversation:{},
+    messages:[],
+    loginUser:{}
 };
+var store = createStore(appReducer, initState);
 
-
-var ChatHistory = React.createClass({
-    getInitialState: function() {
-        return {data: []};
-    },
-
-    appendMessage:function(msg) {
-        var time = new Date();
-        var m = {};
-        m.id = msg.msgLocalID;
-        if (msg.timestamp) {
-            time.setTime(msg.timestamp * 1000);
-            m.timestamp = msg.timestamp;
-        }
-        m.ack = msg.ack;
-        m.received = msg.received;
-        m.msgLocalID = msg.msgLocalID;
-        if (loginUser.uid == msg.sender) {
-            m.cls = "message-out";
-        } else {
-            m.cls = "message-in";
-        }
-        if (msg.contentObj.text) {
-            m.text = util.toStaticHTML(msg.contentObj.text);
-            return htmlLayout.buildText(m);
-        } else if (msg.contentObj.audio) {
-            m.audio = msg.contentObj.audio;
-            return htmlLayout.buildAudio(m);
-        } else if (msg.contentObj.image) {
-            m.image = msg.contentObj.image;
-            return htmlLayout.buildImage(m);
-        } else {
-            return null;
-        }
-    },
-    
-    setHistoryMessage: function(msgs) {
-        this.setState({data:msgs.slice(0)});
-    },
-
-    addMessage: function(msg) {
-        console.log("add message...");
-        var msgs = this.state.data;
-        msgs.push(msg);
-        this.setState({data:msgs});
-    },
-
-    ackMessage: function(msgID, uid) {
-        console.log("ack message...");
-        var msgs = this.state.data;
-        for (var i in msgs) {
-            var msg = msgs[i];
-            if (msg.msgLocalID == msgID) {
-                msg.ack = true;
-                break;
-            }
-        }
-        this.setState({data:msgs});
-    },
-
-    render: function() {
-        var nodes = [];
-        var msgs = this.state.data;
-        console.log("render history:", msgs.length);
-        for (var i in msgs) {
-            var msg = msgs[i];
-            var n = this.appendMessage(msg);
-            if (n) {
-                nodes.push(n);
-            }
-        }
-        return (
-            <div className="chat-list" id="chatHistory">
-                <ul>
-                    {nodes}
-                </ul>
-             </div>        
-        );
-    }
-});
-
-var AppContent = React.createClass({
-    loadData: function() {
-        this.contactList.loadData();
-    },
-    
-    render: function() {
-      var t = function (c) {
-          this.contactList = c
-      }.bind(this);
-        
-      var t2 = function (c) {
-          this.chatHistory = c
-      }.bind(this);
-
-      return (
-          <div className="app">
-           <div className="pane pane-list">
-              <div className="profile pane-header pane-list-header">
-                  <img src="images/_avatar.png" className="avatar" alt=""/>
-                  <span className="name" id="name"></span>
-                  <a className="exit" href="#" id="exit">退出</a>
-              </div>
-              <div className="contact-list">
-                  <ContactList ref={t}/>
-              </div>
-          </div>
-          <div className="main pane pane-chat" id="main">
-              <div className="intro" id="intro">
-                  请选择联系人
-              </div>
-              <div className="pane-header pane-chat-header">
-                  <img src="images/_avatar.png" id="to_user_avatar" className="avatar" alt=""/>
-       
-                  <div className="name" id="to_user"></div>
-              </div>
-              <ChatHistory ref={t2}/>
-              <div className="chat-form pane-chat-footer">
-                  <div className="shortcut-wrap">
-                      <a href="#" id="clipboard" className="clipboard"></a>
-                  </div>
-                  <textarea id="entry" className="chat-input"></textarea>
-              </div>
-          </div>
-         </div>
-      );
-  }
-});
-
-appComponent = ReactDOM.render(
-        <AppContent id="app"/>,
+ReactDOM.render(
+    <Provider store={store}>
+        <AppContent id="app" ref={bindAppContent}/>
+    </Provider>,
     document.getElementById('chat')
 );
 
+
+function qrcodeLogin(success, error) {
+    console.log("app login sid:", sid);
+
+    $.ajax({
+        url: URL + "/qrcode/login",
+        dataType: 'json',
+        data: {sid: sid},
+        success: function (result, status, xhr) {
+            if (status == "success") {
+                success(result);
+            } else {
+                console.log("login error status:", status);
+                error();
+            }
+        },
+        error: function (xhr, err) {
+            console.log("login err:", err, xhr.status);
+            if (xhr.status == 400) {
+                console.log("timeout");
+                var now = new Date();
+                var t = now.getTime() - startup.getTime();
+                if (t > QRCODE_EXPIRE) {
+                    error();
+                } else {
+                    qrcodeLogin(success, error);
+                }
+            } else {
+                error();
+            }
+        }
+    });
+}
+
+
+function refreshQRCode(success) {
+    var url = URL + "/qrcode/session";
+    $.ajax({
+        url: url,
+        dataType: 'json',
+        method:'GET',
+        success: function (result, status, xhr) {
+            if (status == "success") {
+                success(result);
+            } else {
+
+            }
+        },
+        error: function (xhr, err) {
+            console.log("refresh qrcode error:", err, xhr.status);
+        }
+    });
+}
+
+
+function initLogin(token, expires, uid) {
+    var now = Math.floor(Date.now() / 1000);
+    accessToken = token;
+    var t = (expires - now) * 1000;
+    setTimeout(function () {
+        //todo 提示用户会话过期
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("expires");
+        localStorage.removeItem("uid");
+        localStorage.removeItem("sid");
+        location.reload();
+    }, t);
+
+    showChat();
+
+    console.log("app:" + appComponent);
+    appComponent.loadData(uid, token);
+}
+
+function onLoginSuccess(result) {
+    console.log("login success user id:", result.uid,
+                " access token:", result.access_token,
+                " status code:", status);
+    var now = Math.floor(Date.now() / 1000);
+    localStorage.accessToken = result.access_token;
+    localStorage.uid = result.uid;
+    localStorage.expires = now + result.expires_in;
+    localStorage.sid = result.sid;
+    initLogin(localStorage.accessToken, localStorage.expires, localStorage.uid);
+}
+
+
+$(document).ready(function () {
+    player = document.getElementById("player");
+
+    console.log("access token:" + localStorage.accessToken);
+    console.log("token expires:" + localStorage.expires);
+    console.log("uid:" + localStorage.uid)
+    var now = Math.floor(Date.now() / 1000);
+
+    if (localStorage.accessToken &&
+        localStorage.uid &&
+        localStorage.sid &&
+        now < localStorage.expires) {
+        sid = localStorage.sid
+        console.log("sid:" + sid);
+        qrcodeLogin(onLoginSuccess,
+                    function () {
+                        showLogin();
+                        refreshQRCode(function (result) {
+                            sid = result.sid;
+                            var s = URL + "/qrcode/" + sid;
+                            $("#qrcode").attr('src', s);
+                            console.log("sid:" + sid);
+                            qrcodeLogin(onLoginSuccess,
+                                        function () {
+                                            //二维码过期
+                                            console.log("qrcode expires");
+                                            $('.qrcode-timeout').removeClass('hide');
+                                        });
+                        });
+                    });
+    } else {
+        showLogin();
+        refreshQRCode(function (result) {
+            sid = result.sid;
+            var s = URL + "/qrcode/" + sid;
+            $("#qrcode").attr('src', s);
+            console.log("sid:" + sid);
+            qrcodeLogin(onLoginSuccess,
+                        function () {
+                            //二维码过期
+                            console.log("qrcode expires");
+                            $('.qrcode-timeout').removeClass('hide');
+                        });
+        });
+
+    }
+});

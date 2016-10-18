@@ -54,3 +54,80 @@ util = {
     },
 
 };
+
+
+var helper = {
+    toTime: function (ts) {
+        //时间戳取时间
+        var d = ts ? new Date(ts) : new Date();
+        var H = d.getHours();
+        var m = d.getMinutes();
+        return H + ':' + (m < 10 ? '0' + m : m);
+    },
+    getUserName: function (user) {
+        if (user.name) {
+            return user.name;
+        } else {
+            var uid = user.uid.toString(),
+                i = uid.indexOf("0");
+            return uid.substr(i + 1)
+        }
+    },
+    getUserAvatar: function (user) {
+        if (user.avatar) {
+            return user.avatar;
+        } else {
+            return '';
+        }
+    },
+    getPhone: function (phone) {
+        if (phone) {
+            return (phone + '').split('860')[1];
+        } else {
+            return ''
+        }
+    },
+};
+
+function scrollDown() {
+    $('#chatHistory').scrollTop($('#chatHistory ul').outerHeight());
+    $("#entry").text('').focus();
+}
+
+function showLogin() {
+    $("#loginView").removeClass('hide').show();
+    $("#chat").addClass('hide').hide();
+}
+
+function showChat() {
+    $("#loginView").addClass('hide').hide();
+    $("#chat").removeClass('hide').show();
+    scrollDown();
+}
+
+
+var userDB = {
+    users : new Array(),
+    addUser : function(newUser) {
+        var exists = false;
+        for (var i in this.users) {
+            var user = this.users[i];
+            if (user.uid == newUser.uid) {
+                exists = true;
+            }
+        }
+        if (!exists) {
+            this.users.push(newUser);
+        }
+        return !exists;
+    },
+    findUser : function(uid) {
+        for (var i in this.users) {
+            var user = this.users[i];
+            if (user.uid == uid) {
+                return user;
+            }
+        }
+        return null;
+    }
+};

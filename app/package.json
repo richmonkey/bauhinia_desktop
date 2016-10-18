@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "main": "main.js",
   "dependencies": {
-    "mac-screen-capture": "1.0.7"
+    "mac-screen-capture": "1.0.7",
+    "nedb": "^1.8.0",
+    "react-redux": "^4.4.5",
+    "redux": "^3.6.0"
+  },
+  "devDependencies": {
+    "babel-preset-es2015": "^6.16.0",
+    "babel-preset-react": "^6.16.0",
+    "babelify": "^7.3.0"
   }
 }
