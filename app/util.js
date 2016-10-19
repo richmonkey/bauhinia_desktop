@@ -1,3 +1,5 @@
+var capture = require("mac-screen-capture");
+
 util = {
     urlRE: /https?:\/\/([-\w\.]+)+(:\d+)?(\/([^\s]*(\?\S+)?)?)?/g,
     //  html sanitizer

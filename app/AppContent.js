@@ -15,7 +15,7 @@ var ChatHistory = require("./ChatHistory.js");
 var AppContent = require("./AppContent.js");
 
 
-var capture = require("mac-screen-capture");
+
 var clipboard = require("clipboard");
 var remote = require('remote');
 var app = remote.require('app');
