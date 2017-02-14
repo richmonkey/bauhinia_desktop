@@ -15,13 +15,11 @@ var ChatHistory = require("./ChatHistory.js");
 var AppContent = require("./AppContent.js");
 
 
-
-var clipboard = require("clipboard");
-var remote = require('remote');
-var app = remote.require('app');
-var ipc = require('ipc');
-var path = require('path');
-
+var remote = require('electron').remote;
+var ipc = require('electron').ipcRenderer;
+const {clipboard} = require('electron')
+var path = remote.require('path');
+var app = require('electron').remote.app;
 
 var URL = "http://gobelieve.io";
 var API_URL = "http://api.gobelieve.io";

@@ -8,11 +8,8 @@ var redux = require('react-redux')
 var Provider = redux.Provider;
 var connect = redux.connect;
 
-
-var remote = require('remote');
-var app = remote.require('app');
-var ipc = require('ipc');
-var path = require('path');
+var remote = require('electron').remote;
+var path = remote.require('path');
 
 var AppContent = require("./AppContent.js");
 var Login = require("./Login.js");

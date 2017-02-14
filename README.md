@@ -6,3 +6,8 @@
 
 
 watchify --debug --ignore-missing  --no-commondir --insert-global-vars=\"global\" --no-browser-field -t [ babelify --presets [ es2015 react ] --plugins [ transform-object-rest-spread ] ]  app.jsx -o app.js
+
+
+
+##codesign
+https://gist.github.com/jorangreef/27e708c67b7e6746a98a

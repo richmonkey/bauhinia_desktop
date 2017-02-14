@@ -4,7 +4,7 @@ var ReactDOM = require('react-dom');
 var redux = require('react-redux')
 var connect = redux.connect;
 
-var ipc = require('ipc');
+var ipc = require('electron').ipcRenderer;
 
 function setDockBadge(total) {
     console.log("unread count:" + total);

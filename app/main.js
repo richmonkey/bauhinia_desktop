@@ -1,7 +1,8 @@
-var app = require('app');
-var BrowserWindow = require('browser-window'); 
-var Tray = require('tray');
-var Menu = require('menu');
+const electron = require('electron');
+var app = electron.app;
+var BrowserWindow = electron.BrowserWindow;
+var Tray = electron.Tray;
+var Menu = electron.Menu;
 
 var mainWindow = null;
 
@@ -62,7 +63,7 @@ function createMainWindow() {
     mainWindow = new BrowserWindow(opts);
 
     //mainWindow.loadUrl("http://dev.gobelieve.io/");
-    mainWindow.loadUrl('file://' + __dirname + '/index.html');
+    mainWindow.loadURL('file://' + __dirname + '/index.html');
 
     mainWindow.openDevTools();
 
@@ -72,7 +73,7 @@ function createMainWindow() {
 }
 
 // In main process.
-var ipc = require('ipc');
+var ipc = require('electron').ipcMain;
 ipc.on('set-badge', function(event, arg) {
     app.dock.setBadge(arg)
     event.returnValue = "ok";
