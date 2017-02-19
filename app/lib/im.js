@@ -355,7 +355,7 @@ IMService.Utf8ArrayToStr= function (array) {
             if (i != len) continue;
 
             // All leftover bytes are valid.
-            return {result: out, leftovers: leftovers};
+            return out;
         }
         // Remove the UTF-8 prefix from the char (res)
         var mask = (1 << (8 - extraLength - 1)) - 1,
