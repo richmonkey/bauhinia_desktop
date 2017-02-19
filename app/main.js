@@ -75,7 +75,9 @@ function createMainWindow() {
 // In main process.
 var ipc = require('electron').ipcMain;
 ipc.on('set-badge', function(event, arg) {
-    app.dock.setBadge(arg)
+    if (process.platform == 'darwin') {
+        app.dock.setBadge(arg);
+    }
     event.returnValue = "ok";
 });
 

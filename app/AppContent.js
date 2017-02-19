@@ -176,7 +176,7 @@ var AppContent = React.createClass({
                     return;
                 }
                 var temp = clipboard.readImage();
-                var b64 = temp.toDataUrl();
+                var b64 = temp.toDataURL();
                 var now = new Date();
                 var obj = {"image": b64};
                 var msg = {
