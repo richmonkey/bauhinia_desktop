@@ -67,7 +67,17 @@ function messagesReducer(state = [], action) {
 function contactsReducer(state=[], action) {
     switch(action.type) {
         case "set_contacts":
+            console.log("set contacts");
             return action.contacts;
+        default:
+            return state;
+    }
+}
+
+function contactReducer(state={}, action) {
+    switch(action.type) {
+        case "set_contact":
+            return action.contact;
         default:
             return state;
     }
@@ -100,6 +110,7 @@ function appReducer(state={}, action) {
         conversations:conversationsReducer(state.conversations, action),
         messages:messagesReducer(state.messages, action),
         contacts:contactsReducer(state.contacts, action),
+        contact:contactReducer(state.contact, action),
         conversation:conversationReducer(state.conversation, action),
         loginUser:loginUserReducer(state.loginUser, action),
         qrcode:qrcodeReducer(state.qrcode, action)

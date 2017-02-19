@@ -21,8 +21,8 @@ const {clipboard} = require('electron')
 var path = remote.require('path');
 var app = require('electron').remote.app;
 
-var URL = "http://gobelieve.io";
-var API_URL = "http://api.gobelieve.io";
+
+import {URL, API_URL} from './config.js';
 var QRCODE_EXPIRE = 3*60*1000;
 
 
@@ -71,6 +71,7 @@ var AppContent = React.createClass({
         });
     },
 
+    
     loadData: function() {
         var uid = this.props.loginUser.uid;
         var token = this.props.loginUser.token;
@@ -80,7 +81,7 @@ var AppContent = React.createClass({
 
         this.im.accessToken = token;
         this.im.start();
-   
+
         var convs = conversationDB.getConversationList();
         console.log("convs:" + convs + " " + convs.length);
         this.props.dispatch({type:"set_conversations", conversations:convs});
@@ -259,13 +260,13 @@ var AppContent = React.createClass({
             } else {
                 this.imDB.ackMessage(cid, msg.msgLocalID);
                 if (this.props.conversation.cid == cid) {
-                    this.props.dispatch({type:"ack_message", 
+                    this.props.dispatch({type:"ack_message",
                                          msgLocalID:msg.msgLocalID});
                 }
             }
 
             var win = remote.getCurrentWindow();
-            if ((!win.isFocused() || cid != this.props.conversation.cid) && 
+            if ((!win.isFocused() || cid != this.props.conversation.cid) &&
                 msg.sender != this.props.loginUser.uid) {
                 this.showMessageNotification(msg);
 
@@ -317,7 +318,10 @@ var AppContent = React.createClass({
 
     getInitialState: function() {
         this.im = new IMService(this);
-        return {};
+        return {
+            showContact:false,
+            showConversation:true
+        };
     },
 
     componentWillMount: function() {
@@ -330,7 +334,7 @@ var AppContent = React.createClass({
 
     componentWillUnmount: function() {
     },
-    
+
     sendTextMessage:function(text, target) {
         var now = new Date();
         var obj = {"text": text};
@@ -345,8 +349,8 @@ var AppContent = React.createClass({
         if (this.im.connectState == IMService.STATE_CONNECTED) {
             this.imDB.saveMessage(target, message, () => {
                 conversationDB.setLatestMessage(target, message);
-                this.props.dispatch({type:"set_latest_message", 
-                                     message:message, 
+                this.props.dispatch({type:"set_latest_message",
+                                     message:message,
                                      conversation:this.props.conversation});
                 this.props.dispatch({type:"add_message", message:message});
                 scrollDown();
@@ -377,14 +381,74 @@ var AppContent = React.createClass({
         localStorage.clear();
         location.reload();
     },
-    
+
+    onSendMessage:function() {
+        console.log("on send message");
+        var uid = this.props.contact.uid;
+        var messages = this.imDB.loadUserMessage(uid, (messages) => {
+            
+            var index = -1;
+            for (var i = 0; i < this.props.conversations.length; i++) {
+                var conv = this.props.conversations[i];
+                if (conv.cid == uid) {
+                    index = i;
+                    break;
+                }
+            }
+            var conv;
+            if (index == -1) {
+                conv = {
+                    cid:this.props.contact.uid,
+                    name:this.props.contact.name,
+                    unread:0,
+                };
+
+                this.props.dispatch({type:"add_conversation", conversation:conv});
+            } else {
+                conv = this.props.conversations[i];
+            }
+
+            console.log("messages:" + messages.length);
+            this.props.dispatch({type:"set_conversation", conversation:conv});
+            this.props.dispatch({type:"set_messages", messages:messages});
+            scrollDown();
+
+            this.props.dispatch({type:"set_unread", unread:0, cid:conv.cid});
+            conversationDB.setNewCount(conv.cid, 0);
+            var total = 0;
+            for (var i = 0; i < this.props.conversations.length; i++) {
+                total = total + this.props.conversations[i].unread;
+            }
+
+            setDockBadge(total);
+
+            this.setState({
+                showConversation:true,
+                showContact:false
+            });
+
+        });
+        
+    },
     //截屏
     onClipboard:function() {
         var peer = this.props.conversation.cid;
         this.startCapture(peer);
     },
 
-    render: function() {
+
+    onContactClick: function() {
+        console.log("show contact");
+        this.setState({showContact:true, showConversation:false});
+    },
+
+    onMessageClick: function() {
+        this.setState({showContact:false, showConversation:true});
+    },
+
+
+    renderMessage: function() {
+
         var name = "";
         var avatar = "images/_avatar.png";
         if (this.props.conversation.cid) {
@@ -401,6 +465,47 @@ var AppContent = React.createClass({
             }
         }
 
+        
+        return (
+            <div className="main pane pane-chat" id="main">
+
+                
+                <div className={"intro" + (this.props.conversation.cid ? " hide" : "")} id="intro">
+                    请选择联系人
+                </div>
+                
+                <div className="pane-header pane-chat-header">
+                    <img src={avatar} id="to_user_avatar" className="avatar" alt=""/>
+                    <div className="name" id="to_user">{name}</div>
+                </div>
+                <ChatHistory/>
+                <div className="chat-form pane-chat-footer">
+                    <div className="shortcut-wrap">
+                        <a href="#" id="clipboard" onClick={this.onClipboard}className="clipboard"></a>
+                    </div>
+                    <textarea onKeyPress={this.onKeyPress} id="entry" className="chat-input"></textarea>
+                </div>
+            </div>
+        );
+    },
+
+    renderContact: function() {
+        return (
+            <div className="main pane pane-chat" id="main">
+
+                
+                <div className={"intro" + (this.props.contact.uid ? " hide" : "")} id="intro">
+                    请选择联系人
+                </div>
+                
+                <span>{this.props.contact.name}</span>
+                <button onClick={this.onSendMessage}>发消息</button>
+            </div>
+        );
+    },
+    
+    render: function() {
+
         var loginUser = this.props.loginUser;
         var username = "";
         if (loginUser.uid) {
@@ -409,32 +514,30 @@ var AppContent = React.createClass({
 
         return (
             <div className="app">
+                <div className="nav">
+                    <ul>
+                    <li><span onClick={this.onMessageClick}>消息</span></li>
+                    <li><span onClick={this.onContactClick}>联系人</span></li>
+                    </ul>
+                </div>
+
+
                 <div className="pane pane-list">
                     <div className="profile pane-header pane-list-header">
                         <img src="images/_avatar.png" className="avatar" alt=""/>
                         <span className="name" id="name">{username}</span>
                         <a className="exit" onClick={this.onExit} href="#" id="exit">退出</a>
                     </div>
+                    
                     <div className="contact-list">
-                        <ConversationList imDB={this.imDB}/>
+                        {this.state.showConversation ? <ConversationList imDB={this.imDB}/> : null}
+                        {this.state.showContact ? <ContactList imDB={this.imDB}/> : null}
                     </div>
                 </div>
-                <div className="main pane pane-chat" id="main">
-                    <div className={"intro" + (this.props.conversation.cid ? " hide" : "")} id="intro">
-                        请选择联系人
-                    </div>
-                    <div className="pane-header pane-chat-header">
-                        <img src={avatar} id="to_user_avatar" className="avatar" alt=""/>
-                        <div className="name" id="to_user">{name}</div>
-                    </div>
-                    <ChatHistory/>
-                    <div className="chat-form pane-chat-footer">
-                        <div className="shortcut-wrap">
-                            <a href="#" id="clipboard" onClick={this.onClipboard}className="clipboard"></a>
-                        </div>
-                        <textarea onKeyPress={this.onKeyPress} id="entry" className="chat-input"></textarea>
-                    </div>
-                </div>
+
+                {this.state.showConversation ? this.renderMessage() : null}
+                {this.state.showContact ? this.renderContact(): null}
+
             </div>
 
         );

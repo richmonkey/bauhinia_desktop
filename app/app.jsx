@@ -16,14 +16,6 @@ var Login = require("./Login.js");
 var appReducer = require("./reducer");
 
 
-//var URL = "http://dev.gobelieve.io";
-//var API_URL = "http://192.168.33.10";
-
-var URL = "http://gobelieve.io";
-var API_URL = "http://api.gobelieve.io";
-var QRCODE_EXPIRE = 3*60*1000;
-
-
 var startup = new Date();
 var player = null;
 
@@ -48,6 +40,7 @@ Root = connect((state)=>{
 var initState = {
     conversations:[],
     contacts:[],
+    contact:{},
     //当前会话
     conversation:{},
     messages:[],

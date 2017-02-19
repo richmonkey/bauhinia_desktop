@@ -18,25 +18,11 @@ ul, ol, li {
 .hide {
   display: none !important; }
 
-.app-wrap {
-  width: 100%;
-  height: 100%; }
-  .app-wrap::before {
-    position: absolute;
-    z-index: 1;
-    background-color: #009688;
-    width: 100%;
-    height: 127px;
-    content: '';
-    -webkit-animation: bar-slide 0.2s cubic-bezier(0.1, 0.82, 0.25, 1);
-    animation: bar-slide 0.2s cubic-bezier(0.1, 0.82, 0.25, 1);
-    top: 0;
-    left: 0; }
 
 .app {
   box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.06), 0 2px 5px 0 rgba(0, 0, 0, 0.2);
   height: calc(100% - 38px);
-  position: relative;
+  display:flex;
   margin: 0 auto;
   top: 19px;
   z-index: 2;
@@ -50,14 +36,14 @@ ul, ol, li {
   background-position: top left;
   background-repeat: repeat-x;
   background-color: #f7f7f7; }
-
+.nav { background-color: #262626}
+.nav li{ padding: 5px; color: #7d7d7d}
 .avatar {
   width: 64px;
   height: 64px;
   border-radius: 5px; }
 
 .pane {
-  position: absolute;
   top: 0;
   left: 50%;
   height: 100%;
@@ -84,6 +70,15 @@ ul, ol, li {
     width: 100%;
     box-sizing: border-box;
     padding: 10px; }
+
+
+.pane-list {
+    left: 0; }
+
+.pane-chat {
+    left: 30%;
+    width: 70%; }
+
 
 .pane-list .pane-header {
   height: 100px;
@@ -424,19 +419,8 @@ ul, ol, li {
   font-size: 14px;
   color: #888; }
 
-@media screen and (min-width: 1320px) {
-  .app, .app.three {
-    width: 1212px; } }
-.pane-list {
-  left: 0; }
 
-.pane-chat {
-  left: 30%;
-  width: 70%; }
 
-@media screen and (min-width: 1200px) {
-  .app {
-    width: 1118px; } }
 
 .shortcut-wrap{
     height: 36px;

@@ -6,44 +6,32 @@ var redux = require('react-redux')
 var connect = redux.connect;
 
 
+import {URL, API_URL} from './config.js';
+
 
 var ContactList = React.createClass({
     getInitialState: function() {
-        return {data: []};
+        return {};
     },
 
-    loadData:function() {
-        console.log("get user list...");
-        $.ajax({
-            url: URL+"/users",
-            dataType: 'json',
-            headers: {"Authorization": "Bearer " + accessToken},
-            success: function(data) {
-                console.log("users:" + typeof(data));
-                for (var i in data) {
-                    var contact = data[i];
-                    userDB.addUser(contact);
-                }
-                this.setState({data: data});
-            }.bind(this),
-            error: function(xhr, status, err) {
-                console.error("/users", status, err.toString());
-            }.bind(this)
+    onClick: function(uid, e) {
+        var users = this.props.contacts;
+
+        var u = users.find((item) => {
+            return (item.uid == uid);
         });
-    },
 
-    addUser:function(user) {
-        var inserted = userDB.addUser(user);
-        if (inserted) {
-            var data = this.state.data;
-            data.push(user);
-            this.setState({data:data});
+        if (!u) {
+            return;
         }
-    },
 
+        //设置当前选择的联系人
+        this.props.dispatch({type:"set_contact", contact:u});
+    },
+    
     render: function() {
         var nodes = []
-        var users = this.state.data;
+        var users = this.props.contacts;
         for (var i in users) {
             var user = users[i];
 
@@ -54,7 +42,9 @@ var ContactList = React.createClass({
                 name = helper.getPhone(user.uid);
             }
             var t = (
-                <li data-uid={user.uid} key={user.uid}>
+                <li onClick={this.onClick.bind(this, user.uid)}
+                    data-uid={user.uid}
+                    key={user.uid}>
                     <img src={user.avatar?helper.getUserAvatar(user):"images/_avatar.png"} className="avatar" alt=""/>
                     <span className={className}>{name}</span>
                     <span className="num">{user.num||''}</span>
