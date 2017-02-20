@@ -293,16 +293,22 @@ var AppContent = React.createClass({
         });
     },
 
-    handleMessageACK: function (msgLocalID, uid) {
+    handleMessageACK: function (msg) {
+        var msgLocalID = msg.msgLocalID;
+        var uid = msg.receiver;
         this.imDB.ackMessage(uid, msgLocalID);
         if (this.props.conversation.cid == uid) {
             this.props.dispatch({type:"ack_message", msgLocalID:msgLocalID});
         }
         console.log("message ack local id:", msgLocalID, " uid:", uid);
     },
-    handleMessageFailure: function (msgLocalID, uid) {
+    
+    handleMessageFailure: function (msg) {
+        var msgLocalID = msg.msgLocalID;
+        var uid = msg.receiver;        
         console.log("message fail local id:", msgLocalID, " uid:", uid);
     },
+    
     onConnectState: function (state) {
         if (state == IMService.STATE_CONNECTED) {
             console.log("im connected");
@@ -317,7 +323,8 @@ var AppContent = React.createClass({
 
 
     getInitialState: function() {
-        this.im = new IMService(this);
+        this.im = new IMService();
+        this.im.observer = this;
         return {
             showContact:false,
             showConversation:true
