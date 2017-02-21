@@ -8,6 +8,11 @@ function conversationReducer(state={}, action) {
     switch(action.type) {
         case "set_conversation":
             return action.conversation;
+        case "set_conversation_name":
+            if (action.cid == state.cid) {
+                return Object.assign({}, state, {avatar:action.avatar, name:action.name});
+            }
+            return state;
         default:
             return state;
     }
@@ -31,6 +36,15 @@ function conversationsReducer(state=[], action) {
             return convs;
         case "set_latest_message":
             return state;
+        case "set_conversation_name":
+            console.log("set name...");
+            var convs = state.map(function(conv) {
+                if (conv.cid == action.cid) {
+                    return Object.assign({}, conv, {avatar:action.avatar, name:action.name});
+                }
+                return conv
+            });
+            return convs;
         default:
             return state;
     }

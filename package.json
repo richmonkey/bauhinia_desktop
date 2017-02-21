@@ -5,12 +5,13 @@
   "description": "bauhinia",
   "productName": "bauhinia",
   "build": {
-    "appId": "com.beetle.bauhinia"
+     "appId": "com.beetle.bauhinia",
+      "asar": false
   },
   "scripts": {
     "dev": "electron ./app",
-    "pack": "build --dir",
-    "dist": "build"
+    "pack": "build --win --x64 --dir",
+    "dist": "build --win --x64"
   },
   "devDependencies": {
     "babel-preset-react": "^6.1.18",

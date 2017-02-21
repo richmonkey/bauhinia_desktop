@@ -16,8 +16,6 @@ var Login = require("./Login.js");
 var appReducer = require("./reducer");
 
 
-var startup = new Date();
-var player = null;
 
 
 var Root = React.createClass({
@@ -56,7 +54,3 @@ ReactDOM.render(
     document.getElementById('root')
 );
 
-
-$(document).ready(function () {
-    player = document.getElementById("player");
-});

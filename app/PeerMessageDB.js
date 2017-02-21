@@ -1,21 +1,19 @@
 
 var Datastore = require('nedb')
 
-function IMDB(filename) {
+function PeerMessageDB(filename) {
     this.db = new Datastore({filename:filename});
     this.db.loadDatabase();
 }
 
-IMDB.prototype.saveMessage = function(uid, msg, cb) {
-    msg.peer = uid;
-
+PeerMessageDB.prototype.saveMessage = function(msg, cb) {
     this.db.insert(msg, function(err, newMsg) {
         msg.msgLocalID = newMsg._id;
         cb(msg);
     });
 }
 
-IMDB.prototype.loadUserMessage = function(uid, cb) {
+PeerMessageDB.prototype.loadUserMessage = function(uid, cb) {
     this.db.find({peer:uid}).sort({timestamp:1}).exec(function(err, msgs) {
         for (var i = 0; i < msgs.length; i++) {
             msgs[i].msgLocalID = msgs[i]._id;
@@ -29,7 +27,7 @@ IMDB.prototype.loadUserMessage = function(uid, cb) {
     });
 }
 
-IMDB.prototype.ackMessage = function(uid, id) {
+PeerMessageDB.prototype.ackMessage = function(id) {
     this.db.update({_id:id}, {$set : {ack:true}}, {}, 
                    function(err, numReplaced) {
                        if (err) {
@@ -87,10 +85,7 @@ var conversationDB = {
             if (k.startsWith("peer_")) {
                 var uid = parseInt(k.slice(5));
                 var conv = {
-                    cid:uid,
-                    type:"peer",
-                    unread:this.getNewCount(uid),
-                    msg:this.getLatestMessage(uid)
+                    peer:uid,
                 }
                 convs.push(conv);
             }

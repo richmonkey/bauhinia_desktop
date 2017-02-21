@@ -42,6 +42,7 @@ var Login = React.createClass({
     },
 
     qrcodeLogin: function(sid, success, error) {
+        var self = this;
         $.ajax({
             url: URL + "/qrcode/login",
             dataType: 'json',
@@ -63,7 +64,7 @@ var Login = React.createClass({
                     if (t > QRCODE_EXPIRE) {
                         error();
                     } else {
-                        this.qrcodeLogin(sid, success, error);
+                        self.qrcodeLogin(sid, success, error);
                     }
                 } else {
                     error();

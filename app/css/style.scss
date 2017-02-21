@@ -519,4 +519,19 @@ ul, ol, li {
 }
 
 
-
+.shortcut-wrap{
+    height: 36px;
+    .clipboard{
+        background: url('../images/ico_trayicon@2x.png') no-repeat;
+        background-size: 100%;
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        vertical-align: middle;
+        opacity: .6;
+    }
+    .shortcut-wrap .clipboard:hover{
+        opacity: 1;
+    }
+}
+                
