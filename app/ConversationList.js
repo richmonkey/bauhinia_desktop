@@ -19,20 +19,6 @@ var ConversationList = React.createClass({
     onClick: function(conv, e) {
         if (conv.type == "peer") {
             var messages = this.props.imDB.loadUserMessage(conv.peer, (messages) => {
-                var index = -1;
-                for (var i = 0; i < this.props.conversations.length; i++) {
-                    var conv = this.props.conversations[i];
-                    if (conv.cid == conv.cid) {
-                        index = i;
-                        break;
-                    }
-                }
-                if (index == -1) {
-                    return;
-                }
-
-                console.log("messages:" + messages.length);
-                var conv = this.props.conversations[i];
                 this.props.dispatch({type:"set_conversation", conversation:conv});
                 this.props.dispatch({type:"set_messages", messages:messages});
                 scrollDown();
@@ -48,20 +34,6 @@ var ConversationList = React.createClass({
             });
         } else if (conv.type == "group") {
             var messages = this.props.groupDB.loadGroupMessage(conv.groupID, (messages) => {
-                var index = -1;
-                for (var i = 0; i < this.props.conversations.length; i++) {
-                    var conv = this.props.conversations[i];
-                    if (conv.cid == conv.cid) {
-                        index = i;
-                        break;
-                    }
-                }
-                if (index == -1) {
-                    return;
-                }
-
-                console.log("messages:" + messages.length);
-                var conv = this.props.conversations[i];
                 this.props.dispatch({type:"set_conversation", conversation:conv});
                 this.props.dispatch({type:"set_messages", messages:messages});
                 scrollDown();
@@ -84,7 +56,7 @@ var ConversationList = React.createClass({
         var convs = this.props.conversations;
         for (var i in convs) {
             var conv = convs[i];
-            console.log("unread:" + conv.unread);
+  
 
             var name = "";
             var avatar = "";
@@ -102,9 +74,14 @@ var ConversationList = React.createClass({
                 avatar = conv.avatar;
             }
 
-            
+            var active = false;
+            if (conv.cid == this.props.conversation.cid) {
+                active = true;
+            }
+            console.log("11:", this.props.conversation.cid);
+            console.log("cid:", conv.cid, " unread:", conv.unread, " active:", active);
             var t = (
-                <li onClick={this.onClick.bind(this, conv)} data-uid={conv.cid} key={conv.cid}>
+                <li className={active?"active":""} onClick={this.onClick.bind(this, conv)} data-uid={conv.cid} key={conv.cid}>
                     <img src={avatar} className="avatar" alt=""/>
                     <span className="name">{name}</span>
                     <span className="num">{conv.unread||''}</span>
