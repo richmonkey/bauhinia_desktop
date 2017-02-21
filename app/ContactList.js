@@ -37,6 +37,7 @@ var ContactList = React.createClass({
 
             var className = "name";
             var name = user.name;
+            var avatar = user.avatar ? user.avatar : "images/_avatar.png";
             if (!name) {
                 className = "uid";
                 name = helper.getPhone(user.uid);
@@ -51,7 +52,7 @@ var ContactList = React.createClass({
                 <li className={active?"active":""} onClick={this.onClick.bind(this, user.uid)}
                     data-uid={user.uid}
                     key={user.uid}>
-                    <img src={user.avatar?helper.getUserAvatar(user):"images/_avatar.png"} className="avatar" alt=""/>
+                    <img src={avatar} className="avatar" alt=""/>
                     <span className={className}>{name}</span>
                     <span className="num">{user.num||''}</span>
                 </li>
