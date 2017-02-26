@@ -619,7 +619,8 @@ var AppContent = React.createClass({
         this.im.observer = this;
         return {
             showContact:false,
-            showConversation:true
+            showConversation:true,
+            showEmoji:false,
         };
     },
 
@@ -720,6 +721,249 @@ var AppContent = React.createClass({
         this.setState({showContact:false, showConversation:true});
     },
 
+    renderEmoji: function() {
+        //https://mathiasbynens.be/notes/javascript-encoding#surrogate-formulae
+        var emojis = [
+            {
+                name: "grinning",
+                value: "\u{1f600}"
+            },
+            {
+                name: "smiley",
+                value: "\u{1f603}"
+            },
+            {
+                name: "wink",
+                value: "\u{1f609}"
+            },
+            {
+                name: "sweat_smile",
+                value: "\u{1f605}"
+            },
+            {
+                name: "yum",
+                value: "\u{1f60b}"
+            },
+            {
+                name: "sunglasses",
+                value: "\u{1f60e}"
+            },
+            {
+                name: "rage",
+                value: "\u{1f621}"
+            },
+            {
+                name: "confounded",
+                value: "\u{1f616}"
+            },
+            {
+                name: "flushed",
+                value: "\u{1f633}"
+            },
+            {
+                name: "disappointed",
+                value: "\u{1f61e}"
+            },
+            {
+                name: "sob",
+                value: "\u{1f62d}"
+            },
+            {
+                name: "neutral_face",
+                value: "\u{1f610}"
+            },
+            {
+                name: "innocent",
+                value: "\u{1f607}"
+            },
+            {
+                name: "grin",
+                value: "\u{1f601}"
+            },
+            {
+                name: "smirk",
+                value: "\u{1f60f}"
+            },
+            {
+                name: "scream",
+                value: "\u{1f631}"
+            },
+            {
+                name: "sleeping",
+                value: "\u{1f634}"
+            },
+            {
+                name: "flushed",
+                value: "\u{1f633}"
+            },
+            {
+                name: "confused",
+                value: "\u{1f615}"
+            },
+            {
+                name: "mask",
+                value: "\u{1f637}"
+            },
+            {
+                name: "blush",
+                value: "\u{1f60a}"
+            },
+            {
+                name: "worried",
+                value: "\u{1f61f}"
+            },
+            {
+                name: "hushed",
+                value: "\u{1f62f}"
+            },
+            {
+                name: "heartbeat",
+                value: "\u{1f493}"
+            },
+            {
+                name: "broken_heart",
+                value: "\u{1f494}"
+            },
+            {
+                name: "crescent_moon",
+                value: "\u{1f319}"
+            },
+            {
+                name: "star2",
+                value: "\u{1f31f}"
+            },
+            {
+                name: "rainbow",
+                value: "\u{1f308}"
+            },
+            {
+                name: "heart_eyes",
+                value: "\u{1f60d}"
+            },
+            {
+                name: "kissing_smiling_eyes",
+                value: "\u{1f619}"
+            },
+            {
+                name: "lips",
+                value: "\u{1f444}"
+            },
+            {
+                name: "rose",
+                value: "\u{1f339}"
+            },
+            {
+                name: "rose",
+                value: "\u{1f339}"
+            },
+            {
+                name: "+1",
+                value: "\u{1f44d}"
+            },
+        ];
+
+        var self = this;
+        var arr = emojis.map((e, index) => {
+            function onEmojiClick() {
+                console.log("emoji click:", e.name, e.value);
+                var msg = $("#entry").val() + e.value;
+                $("#entry").val(msg);
+            }
+            
+            return (
+                <div key={index}>
+                    <span>
+                        <span onClick={onEmojiClick}
+                              className="emoji">{e.value}</span>
+                    </span>
+                </div>
+            );
+        });
+
+        return (
+            <div className="expressionWrap">
+                <i className="arrow"></i>
+                {arr}
+            </div>
+        );
+    },
+
+    onEmoji: function(e) {
+        var showEmoji = !this.state.showEmoji;
+        this.setState({
+            showEmoji:showEmoji
+        });
+
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+    },
+    
+    renderInputBar: function() {
+        console.log("show emoji:", this.state.showEmoji);
+        return (
+            <div id="MessageForm" className="">
+                <div id="MessageForm-header">
+                    <div className="MessageForm-tool">
+                        <i onClick={this.onEmoji}
+                           className="iconfont-smile"></i>
+
+                        {this.state.showEmoji ? this.renderEmoji() : null}
+                    </div>
+                    <div className="MessageForm-tool">
+                        <i className="screen_shot"
+                           id="screen_shot"
+                           style={{
+                               position: 'relative',
+                               "zIndex": 1
+                           }}
+                           onClick={this.onClipboard}></i>
+                    </div>
+                    <div className="MessageForm-tool">
+                        <i className="iconfont-upload"
+                           id="upload-image"
+                           style={{
+                               position: 'relative',
+                               "zIndex": 1
+                           }}>
+                        </i>
+
+                        <div className="moxie-shim moxie-shim-html5"
+                             style={{position: 'absolute',
+                                     top: "5px",
+                                     left: "0px",
+                                     width: "20px",
+                                     height: "15px",
+                                     overflow: "hidden",
+                                     "zIndex": 0}}>
+                            <input type="file"
+                                   style={{
+                                       fontSize: "999px",
+                                       opacity: 0,
+                                       position: "absolute",
+                                       top: "0px",
+                                       left: "0px",
+                                       width: "100%",
+                                       height: "100%"}}
+                                   multiple=""
+                                   accept="image/jpeg,image/gif,image/png">
+                            </input>
+                            
+                        </div>
+                    </div>
+                    <div className="MessageForm-tool">
+                        <i className="file_shot"
+                           id="upload-file"
+                           style={{
+                               position: 'relative',
+                               "zIndex": 1}}>
+                        </i>
+                    </div>
+                </div>
+                
+            </div>
+        );
+    },
+    
     renderMessage: function() {
         var name = this.props.conversation.name;
         var avatar = this.props.conversation.avatar;
@@ -747,9 +991,7 @@ var AppContent = React.createClass({
                 </div>
                 <ChatHistory/>
                 <div className="chat-form pane-chat-footer">
-                    <div className="shortcut-wrap">
-                        <a href="#" id="clipboard" onClick={this.onClipboard} className="clipboard"></a>
-                    </div>
+                    {this.renderInputBar()}
                     <textarea onKeyPress={this.onKeyPress} id="entry" className="chat-input"></textarea>
                 </div>
             </div>
@@ -770,25 +1012,55 @@ var AppContent = React.createClass({
             </div>
         );
     },
+
+    renderBar: function() {
+        var c1 = this.state.showConversation ? "LeftNav-item iconfont-single cur" : "LeftNav-item iconfont-single";
+        var c2 = this.state.showContact ? "LeftNav-item iconfont-group cur": "LeftNav-item iconfont-group";
+        return (
+            <div className="toolbar">
+                <div className="LeftNav">
+                    <div className={c1}
+                         onClick={this.onMessageClick}>
+                        <div className="singleChat">
+                            <a>single chat</a>
+                        </div>
+                    </div>
+                    <div className={c2}
+                         onClick={this.onContactClick}>
+                        <div className="groupChat">
+                            <a>group chat</a>
+                        </div>
+                    </div>
+                    <div className="LeftNav-item iconfont-add">
+                        <div>
+                            <a>add</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    },
+
+
+    onDocumentClick: function() {
+        console.log("on document click...");
+        this.setState({
+            showEmoji:false
+        });
+    },
     
     render: function() {
-
         var loginUser = this.props.loginUser;
         var username = "";
         if (loginUser.uid) {
             username = (loginUser.name || helper.getPhone(loginUser.uid));
         }
 
+        
         return (
-            <div className="app">
-                <div className="nav">
-                    <ul>
-                    <li><span onClick={this.onMessageClick}>消息</span></li>
-                    <li><span onClick={this.onContactClick}>联系人</span></li>
-                    </ul>
-                </div>
-
-
+            <div onClick={this.onDocumentClick}
+                 className="app">
+                {this.renderBar()}
                 <div className="pane pane-list">
                     <div className="profile pane-header pane-list-header">
                         <img src="images/_avatar.png" className="avatar" alt=""/>
@@ -796,10 +1068,10 @@ var AppContent = React.createClass({
                         <a className="exit" onClick={this.onExit} href="#" id="exit">退出</a>
                     </div>
                     
-                    <div className="contact-list">
-                        {this.state.showConversation ? <ConversationList imDB={this.imDB} groupDB={this.groupDB}/> : null}
-                        {this.state.showContact ? <ContactList/> : null}
-                    </div>
+
+                    {this.state.showConversation ? <ConversationList imDB={this.imDB} groupDB={this.groupDB}/> : null}
+                    {this.state.showContact ? <ContactList/> : null}
+
                 </div>
 
                 {this.state.showConversation ? this.renderMessage() : null}

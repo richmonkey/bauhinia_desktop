@@ -45,7 +45,7 @@ var htmlLayout = {
         var audio_url = msg.audio.url + ".mp3";
         return (
             <li className="chat-item" key={msg.msgLocalID} data-id={msg.id}>
-                <div className={"message"+msg.cls}>
+                <div className={"message " + msg.cls}>
                     <div className="bubble">
                         <p className="pre">
                             <audio  controls="controls" src={audio_url}/>

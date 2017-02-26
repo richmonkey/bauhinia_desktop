@@ -56,7 +56,6 @@ var ConversationList = React.createClass({
         var convs = this.props.conversations;
         for (var i in convs) {
             var conv = convs[i];
-  
 
             var name = "";
             var avatar = "";
@@ -81,19 +80,45 @@ var ConversationList = React.createClass({
             console.log("11:", this.props.conversation.cid);
             console.log("cid:", conv.cid, " unread:", conv.unread, " active:", active);
             var t = (
-                <li className={active?"active":""} onClick={this.onClick.bind(this, conv)} data-uid={conv.cid} key={conv.cid}>
-                    <img src={avatar} className="avatar" alt=""/>
-                    <span className="name">{name}</span>
-                    <span className="num">{conv.unread||''}</span>
-                </li>
-            );  
+                <div className={active?"chatList selected":"chatList"}  onClick={this.onClick.bind(this, conv)} data-uid={conv.cid} key={conv.cid}>
+                    <div className="chat_item online slider-left">
+                        <div className="ext">
+                            <p className="attr clearfix timer">
+                                <span className="pull-left">02-18</span>
+                            </p>
+                            <p className="attr clearfix">
+                                <span className="badge">{conv.unread||''}</span>
+                            </p>
+                        </div>
+
+                        <div className="photo">
+                            <img src={avatar} className="img" alt=""/>
+                        </div>
+
+                        <div className="info">
+                            <h3 className="nickname">
+                                <span className="nickname_text">
+                                    {name}
+                                </span>
+                            </h3>
+                            <p className="msg">
+                                <span>
+                                    {"最近的消息内容"}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            )
             nodes.push(t);
         }
+
         return (
-            <ul id="usersList">
+            <div className="chatArea">
                 {nodes}
-            </ul>
-        );        
+            </div>
+        )
     }
 });
 

@@ -60,9 +60,11 @@ var ContactList = React.createClass({
             nodes.push(t);
         }
         return (
-            <ul id="usersList">
-                {nodes}
-            </ul>
+            <div className="contact-list">
+                <ul id="usersList">
+                    {nodes}
+                </ul>
+            </div>
         );        
     }
 });
