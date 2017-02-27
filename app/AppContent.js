@@ -308,6 +308,8 @@ var AppContent = React.createClass({
             msg.contentObj = obj;
             this.imDB.saveMessage(msg, () => {
                 this.props.dispatch({type:"add_message", message:msg});
+                scrollDown();
+                
                 this.uploadImage(b64)
                     .then((url) => {
                         var obj = {"image": url};
@@ -334,7 +336,8 @@ var AppContent = React.createClass({
             
             this.groupDB.saveMessage(msg, () => {
                 this.props.dispatch({type:"add_message", message:msg});
-
+                scrollDown();
+                
                 this.uploadImage(b64)
                     .then((url) => {
                         var obj = {"image": url};
@@ -359,7 +362,7 @@ var AppContent = React.createClass({
         }
 
         console.log("old image:", oldB64);
-        
+        var self = this;
         capture.captureScreen()
                .then((code) => {
                    console.log("resolve code:" + code);
@@ -369,9 +372,13 @@ var AppContent = React.createClass({
                    var temp = clipboard.readImage();
                    if (temp) {
                        var b64 = temp.toDataURL();
+                       self.setState({
+                           showPreview:true,
+                           preview:b64,
+                       })
                        console.log("image:", b64);
                        if (b64 != oldB64) {
-                           this.sendImageMessage(b64);
+                           //this.sendImageMessage(b64);
                        }
                    }
                }, function (code) {
@@ -524,7 +531,7 @@ var AppContent = React.createClass({
             msg.ack = true;
         }
         
-  
+        
         this.groupDB.saveMessage(msg, () =>  {
             groupConversationDB.setLatestMessage(groupID, msg);
 
@@ -621,6 +628,8 @@ var AppContent = React.createClass({
             showContact:false,
             showConversation:true,
             showEmoji:false,
+            showPreview:false,
+            preview:"",
         };
     },
 
@@ -868,6 +877,7 @@ var AppContent = React.createClass({
                 console.log("emoji click:", e.name, e.value);
                 var msg = $("#entry").val() + e.value;
                 $("#entry").val(msg);
+                $("#entry").focus();
             }
             
             return (
@@ -896,6 +906,51 @@ var AppContent = React.createClass({
 
         e.stopPropagation();
         e.nativeEvent.stopImmediatePropagation();
+    },
+
+    onFileChange: function(e) {
+        var file = document.getElementById('file');
+        console.log("file:", file.value);
+    },
+
+    onImageChange: function() {
+        var file = document.getElementById('image');
+        var f = file.files[0];
+        console.log("file:", f.preview, f.type);
+        console.log("file:", file.value, file.files[0].preview, file.type, file.preview);
+        this.setState({
+            showPreview:true,
+            preview:"",
+        });
+
+        var self = this;
+        
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var src = e.target.result;
+            
+            var maxWidth = 1024;
+            var maxHeight = 1024;
+            var img = new Image();
+            img.onload = function () {
+                var canvas = document.createElement('canvas');
+                if (img.height > maxHeight) {
+                    img.width = maxHeight / img.height * img.width;
+                    img.height = maxHeight;
+                }
+                var ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0, img.width, img.height);
+                var preview = canvas.toDataURL('image/jpeg');
+                self.setState({preview:preview});
+            };
+            img.src = src;
+        };
+        reader.readAsDataURL(f);
+
+        file.value = "";
     },
     
     renderInputBar: function() {
@@ -934,8 +989,10 @@ var AppContent = React.createClass({
                                      width: "20px",
                                      height: "15px",
                                      overflow: "hidden",
-                                     "zIndex": 0}}>
+                                     "zIndex": 2}}>
                             <input type="file"
+                                   id="image"
+                                   onChange={this.onImageChange}
                                    style={{
                                        fontSize: "999px",
                                        opacity: 0,
@@ -947,7 +1004,6 @@ var AppContent = React.createClass({
                                    multiple=""
                                    accept="image/jpeg,image/gif,image/png">
                             </input>
-                            
                         </div>
                     </div>
                     <div className="MessageForm-tool">
@@ -957,6 +1013,30 @@ var AppContent = React.createClass({
                                position: 'relative',
                                "zIndex": 1}}>
                         </i>
+
+                        <div className="moxie-shim moxie-shim-html5"
+                             style={{position: 'absolute',
+                                     top: "5px",
+                                     left: "0px",
+                                     width: "20px",
+                                     height: "15px",
+                                     overflow: "hidden",
+                                     "zIndex": 2}}>
+                            <input type="file"
+                                   id="file"
+                                   onChange={this.onFileChange}
+                                   style={{
+                                       fontSize: "999px",
+                                       opacity: 0,
+                                       position: "absolute",
+                                       top: "0px",
+                                       left: "0px",
+                                       width: "100%",
+                                       height: "100%"}}
+                                   multiple=""
+                                   accept="">
+                            </input>
+                        </div>
                     </div>
                 </div>
                 
@@ -1042,6 +1122,57 @@ var AppContent = React.createClass({
     },
 
 
+    onCancel: function() {
+        this.setState({
+            showPreview:false,
+            preview:"",
+        });
+    },
+
+    onSend: function() {
+        var b64 = this.state.preview;
+        if (b64) {
+            this.sendImageMessage(b64);
+        }
+        this.setState({
+            showPreview:false,
+            preview:"",
+        });
+    },
+    
+    renderPreview: function() {
+        var loading = !this.state.preview;
+        var display = loading ? "inline-block" : "none";
+        return (
+            <div>
+                <div className="previewPicLayer"></div>
+                <div className="previewPic" tabIndex="1">
+                    <span className="closeBtn"
+                          onClick={this.onCancel}></span>
+                    <h2>发送图片</h2>
+                    <div className="picWrap">
+                        <img className="picContent" src={this.state.preview} alt=""/>
+                    </div>
+                    <div className="picFooter">
+                        <button type="button"
+                                className="btn"
+                                onClick={this.onCancel}>
+                            取消
+                        </button>
+                        <button type="button"
+                                className="btn cur"
+                                onClick={this.onSend}>
+                            发送
+                        </button>
+                    </div>
+                </div>
+                <div className="load-container" style={{display:display}}>
+                    <div className="loader">Loading...</div>
+                </div>
+            </div>
+        );
+    },
+    
     onDocumentClick: function() {
         console.log("on document click...");
         this.setState({
@@ -1076,9 +1207,8 @@ var AppContent = React.createClass({
 
                 {this.state.showConversation ? this.renderMessage() : null}
                 {this.state.showContact ? this.renderContact(): null}
-
+                {this.state.showPreview ? this.renderPreview(): null}
             </div>
-
         );
     }
 });
