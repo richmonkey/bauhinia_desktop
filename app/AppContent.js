@@ -842,6 +842,10 @@ var AppContent = React.createClass({
                 value: "\u{1f31f}"
             },
             {
+                name: "sunny",
+                value: "\u{2600}\u{fe0f}"
+            },
+            {
                 name: "rainbow",
                 value: "\u{1f308}"
             },
@@ -1079,6 +1083,11 @@ var AppContent = React.createClass({
     },
 
     renderContact: function() {
+        var avatar = this.props.contact.avatar;
+        if (!avatar) {
+            avatar = "images/_avatar.png";
+        }
+        
         return (
             <div className="main pane pane-chat" id="main">
 
@@ -1086,9 +1095,16 @@ var AppContent = React.createClass({
                 <div className={"intro" + (this.props.contact.uid ? " hide" : "")} id="intro">
                     请选择联系人
                 </div>
-                
-                <span>{this.props.contact.name}</span>
-                <button onClick={this.onSendMessage}>发消息</button>
+
+                <div className="contact">
+                    <div className="header">
+                        <span>{this.props.contact.name}</span>
+                        <img src={avatar} className="avatar"/>
+                    </div>
+                    <div className="line">
+                    </div>
+                    <button className="" onClick={this.onSendMessage}>发消息</button>
+                </div>
             </div>
         );
     },
@@ -1109,11 +1125,6 @@ var AppContent = React.createClass({
                          onClick={this.onContactClick}>
                         <div className="groupChat">
                             <a>group chat</a>
-                        </div>
-                    </div>
-                    <div className="LeftNav-item iconfont-add">
-                        <div>
-                            <a>add</a>
                         </div>
                     </div>
                 </div>
