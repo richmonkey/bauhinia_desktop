@@ -79,6 +79,17 @@ var ConversationList = React.createClass({
             }
             console.log("11:", this.props.conversation.cid);
             console.log("cid:", conv.cid, " unread:", conv.unread, " active:", active);
+
+            var msg = "";
+            if (conv.message.contentObj.text) {
+                msg = util.toStaticHTML(conv.message.contentObj.text);
+            } else if (conv.message.contentObj.audio) {
+                msg = "语音";
+            } else if (conv.message.contentObj.image) {
+                msg = "图片";
+            } else {
+                msg = "未知消息类型";
+            }
             var t = (
                 <div className={active?"chatList selected":"chatList"}  onClick={this.onClick.bind(this, conv)} data-uid={conv.cid} key={conv.cid}>
                     <div className="chat_item online slider-left">
@@ -103,7 +114,7 @@ var ConversationList = React.createClass({
                             </h3>
                             <p className="msg">
                                 <span>
-                                    {"最近的消息内容"}
+                                    {msg}
                                 </span>
                             </p>
                         </div>

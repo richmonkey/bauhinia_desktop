@@ -566,8 +566,7 @@ ul, ol, li {
   word-break: break-all;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  height: 38px;
-  /*IE*/ }
+  margin-top: 8px; }
 
 .chat_item .ext {
   float: right;

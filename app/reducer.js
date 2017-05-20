@@ -35,7 +35,13 @@ function conversationsReducer(state=[], action) {
             });
             return convs;
         case "set_latest_message":
-            return state;
+            var convs = state.map(function(conv) {
+                if (conv.cid == action.conversation.cid) {
+                    return Object.assign({}, conv, {message:action.message});
+                }
+                return conv
+            });
+            return convs;
         case "set_conversation_name":
             console.log("set name...");
             var convs = state.map(function(conv) {

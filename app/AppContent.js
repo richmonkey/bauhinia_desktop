@@ -132,7 +132,7 @@ var AppContent = React.createClass({
                 type:CONVERSATION_PEER,
                 cid:"peer_" + c.peer,
                 unread:conversationDB.getNewCount(c.peer),
-                msg:conversationDB.getLatestMessage(c.peer)
+                message:conversationDB.getLatestMessage(c.peer)
             };
         });
 
@@ -149,7 +149,7 @@ var AppContent = React.createClass({
                 type:CONVERSATION_GROUP,
                 cid:"group_" + c.groupID,
                 unread:groupConversationDB.getNewCount(c.groupID),
-                msg:groupConversationDB.getLatestMessage(c.groupID)
+                message:groupConversationDB.getLatestMessage(c.groupID)
             };
         });
         
@@ -431,9 +431,10 @@ var AppContent = React.createClass({
                 }
             }
 
+            var conv = null;
             if (index == -1) {
                 var name = helper.getPhone(msg.peer);
-                var conv = {
+                conv = {
                     type:"peer",
                     peer:msg.peer,
                     cid:cid,
@@ -443,8 +444,15 @@ var AppContent = React.createClass({
                 };
                 
                 this.props.dispatch({type:"add_conversation", conversation:conv});
+            } else {
+                conv = this.props.conversations[i];
             }
 
+            conversationDB.setLatestMessage(msg.peer, msg);
+            this.props.dispatch({type:"set_latest_message",
+                                 message:msg,
+                                 conversation:conv});
+            
             var win = remote.getCurrentWindow();
             if ((!win.isFocused() || cid != this.props.conversation.cid) &&
                 msg.sender != this.props.loginUser.uid) {
@@ -504,9 +512,9 @@ var AppContent = React.createClass({
         if (index == -1) {
             var accessToken = this.props.loginUser.token;
 
-            self.getGroup(groupID)
+            this.getGroup(groupID)
                 .then((group) => {
-                    self.props.dispatch({type:"set_conversation_name",
+                    this.props.dispatch({type:"set_conversation_name",
                                          name:group.name,
                                          cid:"group_" + groupID});
                 });
@@ -548,9 +556,10 @@ var AppContent = React.createClass({
                 }
             }
 
+            var conv = null;
             if (index == -1) {
                 var name = ""+groupID;
-                var conv = {
+                conv = {
                     groupID:groupID,
                     type:"group",
                     cid:cid,
@@ -560,8 +569,14 @@ var AppContent = React.createClass({
                 };
                 
                 this.props.dispatch({type:"add_conversation", conversation:conv});
+            } else {
+                conv = this.props.conversations[i];
             }
 
+            this.props.dispatch({type:"set_latest_message",
+                                 message:msg,
+                                 conversation:conv});
+            
             var win = remote.getCurrentWindow();
             if ((!win.isFocused() || cid != this.props.conversation.cid) &&
                 msg.sender != this.props.loginUser.uid) {
