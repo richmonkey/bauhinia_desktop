@@ -15,15 +15,6 @@ app.on('window-all-closed', function() {
   }
 });
 
-//v0.30.2
-app.on('activate-with-no-open-windows', function() {
-    console.log("activate-with-no-open-windows");
-    if (!mainWindow) {
-        createMainWindow();
-    }
-});
-
-//v0.34.2
 app.on("activate", function(event, hasVisibleWindows) {
     console.log("app activate:" + hasVisibleWindows);
     if (!mainWindow) {
@@ -55,6 +46,7 @@ function createAppTray() {
 
 function createMainWindow() {
     var opts = {
+        title:"羊蹄甲",
         width: 1024, 
         height: 800, 
         'web-preferences': {'web-security': true}
@@ -65,7 +57,7 @@ function createMainWindow() {
     //mainWindow.loadUrl("http://dev.gobelieve.io/");
     mainWindow.loadURL('file://' + __dirname + '/index.html');
 
-    mainWindow.openDevTools();
+    //mainWindow.openDevTools();
 
     mainWindow.on('closed', function() {
         mainWindow = null;
@@ -82,6 +74,5 @@ ipc.on('set-badge', function(event, arg) {
 });
 
 app.on('ready', function() {
-    createAppTray();
     createMainWindow();
 });
