@@ -81,6 +81,7 @@ var AppContent = React.createClass({
                     }
                     return c;
                 });
+                console.log("set conversations 222...");                
                 this.props.dispatch({type:"set_conversations", conversations:newConvs});
                 this.setState({contacts:data});
             }.bind(this),
@@ -137,8 +138,14 @@ var AppContent = React.createClass({
             }
             var convs = convs.map(function(c) {
                 if (c.type == CONVERSATION_PEER) {
-                    name = helper.getPhone(c.peer);
-                    c.name = name;
+                    var u = userDB.findUser(c.peer);
+                    if (u) {
+                        c.name = u.name;
+                        c.avatar = u.avatar;
+                    } else {
+                        c.name = helper.getPhone(c.peer);
+                        c.avatar = "";
+                    }
                 } else if (c.type == CONVERSATION_GROUP) {
                     self.getGroup(c.groupID)
                         .then((group) => {
@@ -147,7 +154,7 @@ var AppContent = React.createClass({
                 }
                 return c;
             });
-            
+            console.log("set conversations 111...");
             this.props.dispatch({type:"set_conversations", conversations:convs});
         });
     

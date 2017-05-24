@@ -57,25 +57,6 @@ function conversationsReducer(state=[], action) {
 }
 
 
-function contactsReducer(state=[], action) {
-    switch(action.type) {
-        case "set_contacts":
-            console.log("set contacts");
-            return action.contacts;
-        default:
-            return state;
-    }
-}
-
-function contactReducer(state={}, action) {
-    switch(action.type) {
-        case "set_contact":
-            return action.contact;
-        default:
-            return state;
-    }
-}
-
 function loginUserReducer(state={}, action) {
     switch(action.type) {
         case "set_login_user":
@@ -101,8 +82,6 @@ function qrcodeReducer(state={}, action) {
 function appReducer(state={}, action) {
     return {
         conversations:conversationsReducer(state.conversations, action),
-        contacts:contactsReducer(state.contacts, action),
-        contact:contactReducer(state.contact, action),
         conversation:conversationReducer(state.conversation, action),
         loginUser:loginUserReducer(state.loginUser, action),
         qrcode:qrcodeReducer(state.qrcode, action)
