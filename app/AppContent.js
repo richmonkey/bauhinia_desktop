@@ -661,7 +661,6 @@ var AppContent = React.createClass({
         return {
             showContact:false,
             showConversation:true,
-            showEmoji:false,
             showPreview:false,
             preview:"",
             contacts:[],
@@ -857,8 +856,7 @@ var AppContent = React.createClass({
                     onImageChange={this.onImageChange}
                     onClipboard={this.onClipboard}
                     onFileChange={this.onFileChange}
-                    sendTextMessage={this.sendTextMessage}
-                    showEmoji={this.state.showEmoji} />
+                    sendTextMessage={this.sendTextMessage} />
             </div>
         );
     },
@@ -965,9 +963,9 @@ var AppContent = React.createClass({
     },
     
     onDocumentClick: function() {
-        this.setState({
-            showEmoji:false
-        });
+        if (this.inputBar) {
+            this.inputBar.hideEmoji();
+        }
     },
     
     render: function() {
