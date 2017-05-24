@@ -8,6 +8,8 @@ var redux = require('react-redux')
 var Provider = redux.Provider;
 var connect = redux.connect;
 
+var CONVERSATION_PEER = "peer";
+var CONVERSATION_GROUP = "group";
 
 var htmlLayout = {
     buildText: function (msg) {
@@ -61,6 +63,63 @@ var htmlLayout = {
 
 
 var ChatHistory = React.createClass({
+    getInitialState: function() {
+        return {
+            messages:[]
+        };
+    },
+    
+    scrollDown: function() {
+        $('#chatHistory').scrollTop($('#chatHistory ul').outerHeight());
+        $("#entry").text('').focus();
+    },
+
+    componentWillMount: function() {
+        if (this.props.conversation.type == CONVERSATION_PEER) {
+            this.props.imDB.loadMessages(this.props.conversation.peer, (messages) => {
+                this.setState({messages:messages},
+                              () => {
+                                  this.scrollDown();                              
+                              });
+            });            
+        } else if (this.props.conversation.type == CONVERSATION_GROUP) {
+            this.props.groupDB.loadMessages(this.props.conversation.groupID, (messages) => {
+                this.setState({messages:messages},
+                              () => {
+                                  this.scrollDown();                                  
+                              });
+            }); 
+        } else {
+            this.setState({messages:[]});
+        }        
+    },
+    
+    componentWillReceiveProps: function(nextProps) {
+        if (this.props.conversation.cid == nextProps.conversation.cid) {
+            return;
+        }
+
+        
+        if (nextProps.conversation.type == CONVERSATION_PEER) {
+            this.props.imDB.loadMessages(nextProps.conversation.peer, (messages) => {
+                this.setState({messages:messages},
+                              () => {
+                                  this.scrollDown();                              
+                              });
+            });            
+        } else if (nextProps.conversation.type == CONVERSATION_GROUP) {
+            this.props.groupDB.loadMessages(nextProps.conversation.groupID, (messages) => {
+                this.setState({messages:messages},
+                              () => {
+                                  this.scrollDown();                                  
+                              });
+            }); 
+        } else {
+            this.setState({messages:[]});
+        }
+    },
+
+    
     appendMessage:function(msg) {
         var time = new Date();
         var m = {};
@@ -91,9 +150,30 @@ var ChatHistory = React.createClass({
         }
     },
 
+    addMessage: function(msg) {
+        var messages = this.state.messages.concat(msg);
+        this.setState({messages:messages}, () => {
+            this.scrollDown();
+        });
+    },
+
+    ackMessage: function(msgLocalID) {
+        var index = this.state.messages.findIndex((m) => {
+            return m.msgLocalID == msgLocalID;
+        });
+        
+        if (index == -1) {
+            return;
+        } else {
+            var messages = this.state.messages;
+            messages[index].ack = true;
+            this.setState({messages:messages});
+        }        
+    },
+
     render: function() {
         var nodes = [];
-        var msgs = this.props.messages;
+        var msgs = this.state.messages;
         console.log("render history:", msgs.length);
         for (var i in msgs) {
             var msg = msgs[i];
@@ -113,8 +193,10 @@ var ChatHistory = React.createClass({
 });
 
 var ChatHistory = connect(function(state) {
-    return {messages:state.messages,
-            loginUser:state.loginUser};
-})(ChatHistory);
+    return {
+        conversation:state.conversation,
+        loginUser:state.loginUser
+    };
+}, null, null, {withRef:true})(ChatHistory);
 
 module.exports = ChatHistory;

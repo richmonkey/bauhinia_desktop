@@ -8,11 +8,14 @@ var redux = require('react-redux')
 var Provider = redux.Provider;
 var connect = redux.connect;
 
-
+var InputBar = require('./InputBar.js');
 var ConversationList = require('./ConversationList.js');
 var ContactList = require('./ContactList.js');
 var ChatHistory = require("./ChatHistory.js");
-var AppContent = require("./AppContent.js");
+
+var PeerMessageDB = require('./PeerMessageDB.js');
+var GroupMessageDB = require('./GroupMessageDB.js');
+var ConversationDB = require('./ConversationDB.js');
 
 
 var remote = require('electron').remote;
@@ -64,7 +67,7 @@ var AppContent = React.createClass({
                     var contact = data[i];
                     userDB.addUser(contact);
                 }
-                this.props.dispatch({type:"set_contacts", contacts:data});
+
                 var conversations = this.props.conversations;
                 var newConvs = conversations.map((c) => {
                     if (c.type == CONVERSATION_PEER) {
@@ -79,6 +82,7 @@ var AppContent = React.createClass({
                     return c;
                 });
                 this.props.dispatch({type:"set_conversations", conversations:newConvs});
+                this.setState({contacts:data});
             }.bind(this),
             error: function(xhr, status, err) {
                 console.error("/users", status, err.toString());
@@ -119,43 +123,34 @@ var AppContent = React.createClass({
         filename = path.join(app.getPath("userData"), "group_messages_" + uid + ".db");
         console.log("group message db file name:" + filename);
         this.groupDB = new GroupMessageDB(filename);
-        
+
+        filename = path.join(app.getPath("userData"), "conversations_" + uid + ".db");
+        console.log("conversation db file name:" + filename);
+        this.conversationDB = new ConversationDB(filename);
+
         this.im.accessToken = token;
         this.im.start();
 
-        var peerConvs = conversationDB.getConversationList();
-        var convs1 = peerConvs.map(function(c) {
-            name = helper.getPhone(c.peer);
-            return {
-                name:name,
-                peer:c.peer,
-                type:CONVERSATION_PEER,
-                cid:"peer_" + c.peer,
-                unread:conversationDB.getNewCount(c.peer),
-                message:conversationDB.getLatestMessage(c.peer)
-            };
+        this.conversationDB.getConversationList((err, convs) => {
+            if (err) {
+                return;
+            }
+            var convs = convs.map(function(c) {
+                if (c.type == CONVERSATION_PEER) {
+                    name = helper.getPhone(c.peer);
+                    c.name = name;
+                } else if (c.type == CONVERSATION_GROUP) {
+                    self.getGroup(c.groupID)
+                        .then((group) => {
+                            self.props.dispatch({type:"set_conversation_name", name:group.name, avatar:"", cid:c.cid});
+                        });
+                }
+                return c;
+            });
+            
+            this.props.dispatch({type:"set_conversations", conversations:convs});
         });
-
-        var groupConvs = groupConversationDB.getConversationList();
-        var convs2 = groupConvs.map(function(c) {
-            self.getGroup(c.groupID)
-                .then((group) => {
-                    self.props.dispatch({type:"set_conversation_name", name:group.name, avatar:"", cid:"group_" + c.groupID});
-                });
-
-            return {
-                name:""+c.groupID,
-                groupID:c.groupID,
-                type:CONVERSATION_GROUP,
-                cid:"group_" + c.groupID,
-                unread:groupConversationDB.getNewCount(c.groupID),
-                message:groupConversationDB.getLatestMessage(c.groupID)
-            };
-        });
-        
-        var convs = convs1.concat(convs2);
-        
-        this.props.dispatch({type:"set_conversations", conversations:convs});
+    
 
         this.loadContacts(token);
     },
@@ -253,16 +248,17 @@ var AppContent = React.createClass({
             
             if (this.im.connectState == IMService.STATE_CONNECTED) {
                 this.imDB.saveMessage(message, () => {
-                    conversationDB.setLatestMessage(peer, message);
+                    this.conversationDB.setLatestMessage(this.props.conversation.cid, message);
                     this.props.dispatch({type:"set_latest_message",
                                          message:message,
                                          conversation:this.props.conversation});
-                    this.props.dispatch({type:"add_message", message:message});
-                    scrollDown();
                     this.im.sendPeerMessage(message);
                     
+                    if (this.chat) {
+                        this.chat.getWrappedInstance().addMessage(message);
+                    }
+                    
                     $("#entry").val("");
-                    $("#chatHistory").show();
                 });
             }
         } else if (this.props.conversation.type == CONVERSATION_GROUP) {
@@ -278,16 +274,15 @@ var AppContent = React.createClass({
             var groupID = this.props.conversation.groupID;
             if (this.im.connectState == IMService.STATE_CONNECTED) {
                 this.groupDB.saveMessage(message, () => {
-                    groupConversationDB.setLatestMessage(groupID, message);
+                    this.conversationDB.setLatestMessage(this.props.conversation.cid, message);
                     this.props.dispatch({type:"set_latest_message",
                                          message:message,
                                          conversation:this.props.conversation});
-                    this.props.dispatch({type:"add_message", message:message});
-                    scrollDown();
-                    this.im.sendGroupMessage(message);
-
+                    this.im.sendGroupMessage(message);                    
+                    if (this.chat) {
+                        this.chat.getWrappedInstance().addMessage(message);
+                    }
                     $("#entry").val("");
-                    $("#chatHistory").show();
                 });
             }
         }
@@ -307,8 +302,13 @@ var AppContent = React.createClass({
             };
             msg.contentObj = obj;
             this.imDB.saveMessage(msg, () => {
-                this.props.dispatch({type:"add_message", message:msg});
-                scrollDown();
+                this.conversationDB.setLatestMessage(this.props.conversation.cid, msg);
+                this.props.dispatch({type:"set_latest_message",
+                                     message:msg,
+                                     conversation:this.props.conversation});
+                if (this.chat) {
+                    this.chat.getWrappedInstance().addMessage(msg);
+                }
                 
                 this.uploadImage(b64)
                     .then((url) => {
@@ -335,8 +335,14 @@ var AppContent = React.createClass({
             msg.contentObj = obj;
             
             this.groupDB.saveMessage(msg, () => {
-                this.props.dispatch({type:"add_message", message:msg});
-                scrollDown();
+                this.conversationDB.setLatestMessage(this.props.conversation.cid, msg);
+                this.props.dispatch({type:"set_latest_message",
+                                     message:msg,
+                                     conversation:this.props.conversation});
+
+                if (this.chat) {
+                    this.chat.getWrappedInstance().addMessage(msg);
+                }
                 
                 this.uploadImage(b64)
                     .then((url) => {
@@ -387,7 +393,6 @@ var AppContent = React.createClass({
     },
 
 
-
     handlePeerMessage: function (msg) {
         console.log("msg sender:", msg.sender, " receiver:", msg.receiver, " content:", msg.content, " timestamp:", msg.timestamp);
 
@@ -416,11 +421,12 @@ var AppContent = React.createClass({
         var cid = "peer_" + msg.peer;
 
         this.imDB.saveMessage(msg, () =>  {
-            conversationDB.setLatestMessage(msg.peer, msg);
+            this.conversationDB.setLatestMessage(cid, msg);
 
             if (this.props.conversation.cid == cid) {
-                this.props.dispatch({type:"add_message", message:msg});
-                scrollDown();
+                if (this.chat) {
+                    this.chat.getWrappedInstance().addMessage(msg);
+                }
             }
 
             var index = -1;
@@ -435,20 +441,21 @@ var AppContent = React.createClass({
             if (index == -1) {
                 var name = helper.getPhone(msg.peer);
                 conv = {
-                    type:"peer",
+                    type:CONVERSATION_PEER,
                     peer:msg.peer,
                     cid:cid,
                     message:msg,
                     unread:0,
                     name:name,
                 };
-                
+
+                this.conversationDB.addConversation(conv);
                 this.props.dispatch({type:"add_conversation", conversation:conv});
             } else {
                 conv = this.props.conversations[i];
             }
 
-            conversationDB.setLatestMessage(msg.peer, msg);
+            this.conversationDB.setLatestMessage(cid, msg);
             this.props.dispatch({type:"set_latest_message",
                                  message:msg,
                                  conversation:conv});
@@ -469,7 +476,7 @@ var AppContent = React.createClass({
                 if (index != -1) {
                     var unread = this.props.conversations[index].unread + 1;
                     this.props.dispatch({type:"set_unread", cid:cid, unread:unread});
-                    conversationDB.setNewCount(cid, unread);
+                    this.conversationDB.setNewCount(cid, unread);
 
                     var total = 0;
                     for (var i = 0; i < this.props.conversations.length; i++) {
@@ -484,10 +491,12 @@ var AppContent = React.createClass({
     handleMessageACK: function (msg) {
         var msgLocalID = msg.msgLocalID;
         var uid = msg.receiver;
+        var cid = "peer_" + uid;
         this.imDB.ackMessage(msgLocalID);
-        if (this.props.conversation.type == CONVERSATION_PEER &&
-            this.props.conversation.peer == uid) {
-            this.props.dispatch({type:"ack_message", msgLocalID:msgLocalID});
+        if (this.props.conversation.cid == cid) {
+            if (this.chat) {
+                this.chat.getWrappedInstance().ackMessage(msgLocalID);
+            }
         }
         console.log("message ack local id:", msgLocalID, " uid:", uid);
     },
@@ -500,8 +509,6 @@ var AppContent = React.createClass({
 
     handleGroupMessage: function (msg) {
         console.log("group msg sender:", msg.sender, " receiver:", msg.receiver, " content:", msg.content, " timestamp:", msg.timestamp);
-
-        
         var groupID = msg.receiver;
         var cid = "group_" + groupID;
         
@@ -516,7 +523,7 @@ var AppContent = React.createClass({
                 .then((group) => {
                     this.props.dispatch({type:"set_conversation_name",
                                          name:group.name,
-                                         cid:"group_" + groupID});
+                                         cid:cid});
                 });
         }
         
@@ -529,23 +536,23 @@ var AppContent = React.createClass({
 
         if (msg.sender != this.props.loginUser.uid) {
             if (player.paused) {
-                console.log("play.....");
                 player.play();
-            } else {
-                console.log("player is playing...");
             }
+            msg.outgoing = false;
         } else {
             //收到自己在其他端发出去的消息
             msg.ack = true;
+            msg.outgoing = true;
         }
         
         
         this.groupDB.saveMessage(msg, () =>  {
-            groupConversationDB.setLatestMessage(groupID, msg);
+            this.conversationDB.setLatestMessage(cid, msg);
 
             if (this.props.conversation.cid == cid) {
-                this.props.dispatch({type:"add_message", message:msg});
-                scrollDown();
+                if (this.chat) {
+                    this.chat.getWrappedInstance().addMessage(msg);
+                }                
             }
 
             var index = -1;
@@ -561,18 +568,20 @@ var AppContent = React.createClass({
                 var name = ""+groupID;
                 conv = {
                     groupID:groupID,
-                    type:"group",
+                    type:CONVERSATION_GROUP,
                     cid:cid,
                     message:msg,
                     unread:0,
                     name:name
                 };
-                
+
+                this.conversationDB.addConversation(conv);
                 this.props.dispatch({type:"add_conversation", conversation:conv});
             } else {
                 conv = this.props.conversations[i];
             }
 
+            this.conversationDB.setLatestMessage(cid, msg);            
             this.props.dispatch({type:"set_latest_message",
                                  message:msg,
                                  conversation:conv});
@@ -593,7 +602,7 @@ var AppContent = React.createClass({
                 if (index != -1) {
                     var unread = this.props.conversations[index].unread + 1;
                     this.props.dispatch({type:"set_unread", cid:cid, unread:unread});
-                    conversationDB.setNewCount(cid, unread);
+                    this.conversationDB.setNewCount(cid, unread);
 
                     var total = 0;
                     for (var i = 0; i < this.props.conversations.length; i++) {
@@ -608,10 +617,13 @@ var AppContent = React.createClass({
     handleGroupMessageACK: function (msg) {
         var msgLocalID = msg.msgLocalID;
         var groupID = msg.receiver;
+        var cid = "group_" + groupID;
+        
         this.groupDB.ackMessage(msgLocalID);
-        if (this.props.conversation.type == CONVERSATION_GROUP &&
-            this.props.conversation.groupID == groupID) {
-            this.props.dispatch({type:"ack_message", msgLocalID:msgLocalID});
+        if (this.props.conversation.cid == cid) {
+            if (this.chat) {
+                this.chat.getWrappedInstance().ackMessage(msgLocalID);
+            }
         }
         console.log("message ack local id:", msgLocalID, " groupID:", groupID);
     },
@@ -645,6 +657,8 @@ var AppContent = React.createClass({
             showEmoji:false,
             showPreview:false,
             preview:"",
+            contacts:[],
+            contact:{},
         };
     },
 
@@ -659,82 +673,94 @@ var AppContent = React.createClass({
     componentWillUnmount: function() {
     },
 
-
-    onKeyPress:function(e) {
-        if (e.key != 'Enter') return;
-
-        var msg = $("#entry").val().replace("\n", "");
-        if (!util.isBlank(msg)) {
-            this.sendTextMessage(msg);
-        }
-        return false;
-    },
-
     onExit: function() {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("expires");
         localStorage.removeItem("uid");
         localStorage.removeItem("sid");
-        localStorage.clear();
         location.reload();
     },
 
+    onContactItemClick(uid) {
+        var users = this.state.contacts;
+
+        var u = users.find((item) => {
+            return (item.uid == uid);
+        });
+
+        if (!u) {
+            return;
+        }
+        
+        users.forEach((item)=> {
+            item.active = false;
+        });
+        u.active = true;
+        this.setState({contact:u});
+    },
+    
+    onConversationClick(conv) {
+        this.props.dispatch({type:"set_conversation", conversation:conv});
+        this.props.dispatch({type:"set_unread", unread:0, cid:conv.cid});
+        this.conversationDB.setNewCount(conv.cid, 0);
+        var total = 0;
+        for (var i = 0; i < this.props.conversations.length; i++) {
+            total = total + this.props.conversations[i].unread;
+        }
+
+        setDockBadge(total);
+    },
+    
     onSendMessage:function() {
         console.log("on send message");
-        var uid = this.props.contact.uid;
-        var messages = this.imDB.loadUserMessage(uid, (messages) => {
+        var uid = this.state.contact.uid;
+        var cid = "peer_" + uid;
             
-            var index = -1;
-            for (var i = 0; i < this.props.conversations.length; i++) {
-                var conv = this.props.conversations[i];
-                if (conv.cid == uid) {
-                    index = i;
-                    break;
-                }
+        var index = -1;
+        for (var i = 0; i < this.props.conversations.length; i++) {
+            var conv = this.props.conversations[i];
+            if (conv.cid == cid) {
+                index = i;
+                break;
             }
-            var conv;
-            if (index == -1) {
-                conv = {
-                    type:CONVERSATION_PEER,
-                    peer:this.props.contact.uid,
-                    cid:"peer_" + this.props.contact.uid,
-                    name:this.props.contact.name,
-                    avatar:this.props.contact.avatar,
-                    unread:0,
-                };
+        }
+        var conv;
+        if (index == -1) {
+            conv = {
+                type:CONVERSATION_PEER,
+                peer:this.state.contact.uid,
+                cid:"peer_" + this.state.contact.uid,
+                name:this.state.contact.name,
+                avatar:this.state.contact.avatar,
+                unread:0,
+            };
 
-                this.props.dispatch({type:"add_conversation", conversation:conv});
-            } else {
-                conv = this.props.conversations[i];
-            }
+            this.conversationDB.addConversation(conv);
+            this.props.dispatch({type:"add_conversation", conversation:conv});
+        } else {
+            conv = this.props.conversations[i];
+        }
 
-            console.log("messages:" + messages.length);
-            this.props.dispatch({type:"set_conversation", conversation:conv});
-            this.props.dispatch({type:"set_messages", messages:messages});
-            scrollDown();
+        this.props.dispatch({type:"set_conversation", conversation:conv});
+        this.props.dispatch({type:"set_unread", unread:0, cid:conv.cid});
+        this.conversationDB.setNewCount(conv.cid, 0);
+        var total = 0;
+        for (var i = 0; i < this.props.conversations.length; i++) {
+            total = total + this.props.conversations[i].unread;
+        }
 
-            this.props.dispatch({type:"set_unread", unread:0, cid:conv.cid});
-            conversationDB.setNewCount(conv.cid, 0);
-            var total = 0;
-            for (var i = 0; i < this.props.conversations.length; i++) {
-                total = total + this.props.conversations[i].unread;
-            }
+        setDockBadge(total);
 
-            setDockBadge(total);
-
-            this.setState({
-                showConversation:true,
-                showContact:false
-            });
-
+        this.setState({
+            showConversation:true,
+            showContact:false
         });
-        
     },
+    
     //截屏
     onClipboard:function() {
         this.startCapture();
     },
-
 
     onContactClick: function() {
         console.log("show contact");
@@ -743,188 +769,6 @@ var AppContent = React.createClass({
 
     onMessageClick: function() {
         this.setState({showContact:false, showConversation:true});
-    },
-
-    renderEmoji: function() {
-        //https://mathiasbynens.be/notes/javascript-encoding#surrogate-formulae
-        var emojis = [
-            {
-                name: "grinning",
-                value: "\u{1f600}"
-            },
-            {
-                name: "smiley",
-                value: "\u{1f603}"
-            },
-            {
-                name: "wink",
-                value: "\u{1f609}"
-            },
-            {
-                name: "sweat_smile",
-                value: "\u{1f605}"
-            },
-            {
-                name: "yum",
-                value: "\u{1f60b}"
-            },
-            {
-                name: "sunglasses",
-                value: "\u{1f60e}"
-            },
-            {
-                name: "rage",
-                value: "\u{1f621}"
-            },
-            {
-                name: "confounded",
-                value: "\u{1f616}"
-            },
-            {
-                name: "flushed",
-                value: "\u{1f633}"
-            },
-            {
-                name: "disappointed",
-                value: "\u{1f61e}"
-            },
-            {
-                name: "sob",
-                value: "\u{1f62d}"
-            },
-            {
-                name: "neutral_face",
-                value: "\u{1f610}"
-            },
-            {
-                name: "innocent",
-                value: "\u{1f607}"
-            },
-            {
-                name: "grin",
-                value: "\u{1f601}"
-            },
-            {
-                name: "smirk",
-                value: "\u{1f60f}"
-            },
-            {
-                name: "scream",
-                value: "\u{1f631}"
-            },
-            {
-                name: "sleeping",
-                value: "\u{1f634}"
-            },
-            {
-                name: "flushed",
-                value: "\u{1f633}"
-            },
-            {
-                name: "confused",
-                value: "\u{1f615}"
-            },
-            {
-                name: "mask",
-                value: "\u{1f637}"
-            },
-            {
-                name: "blush",
-                value: "\u{1f60a}"
-            },
-            {
-                name: "worried",
-                value: "\u{1f61f}"
-            },
-            {
-                name: "hushed",
-                value: "\u{1f62f}"
-            },
-            {
-                name: "heartbeat",
-                value: "\u{1f493}"
-            },
-            {
-                name: "broken_heart",
-                value: "\u{1f494}"
-            },
-            {
-                name: "crescent_moon",
-                value: "\u{1f319}"
-            },
-            {
-                name: "star2",
-                value: "\u{1f31f}"
-            },
-            {
-                name: "sunny",
-                value: "\u{2600}\u{fe0f}"
-            },
-            {
-                name: "rainbow",
-                value: "\u{1f308}"
-            },
-            {
-                name: "heart_eyes",
-                value: "\u{1f60d}"
-            },
-            {
-                name: "kissing_smiling_eyes",
-                value: "\u{1f619}"
-            },
-            {
-                name: "lips",
-                value: "\u{1f444}"
-            },
-            {
-                name: "rose",
-                value: "\u{1f339}"
-            },
-            {
-                name: "rose",
-                value: "\u{1f339}"
-            },
-            {
-                name: "+1",
-                value: "\u{1f44d}"
-            },
-        ];
-
-        var self = this;
-        var arr = emojis.map((e, index) => {
-            function onEmojiClick() {
-                console.log("emoji click:", e.name, e.value);
-                var msg = $("#entry").val() + e.value;
-                $("#entry").val(msg);
-                $("#entry").focus();
-            }
-            
-            return (
-                <div key={index}>
-                    <span>
-                        <span onClick={onEmojiClick}
-                              className="emoji">{e.value}</span>
-                    </span>
-                </div>
-            );
-        });
-
-        return (
-            <div className="expressionWrap">
-                <i className="arrow"></i>
-                {arr}
-            </div>
-        );
-    },
-
-    onEmoji: function(e) {
-        var showEmoji = !this.state.showEmoji;
-        this.setState({
-            showEmoji:showEmoji
-        });
-
-        e.stopPropagation();
-        e.nativeEvent.stopImmediatePropagation();
     },
 
     onFileChange: function(e) {
@@ -972,97 +816,7 @@ var AppContent = React.createClass({
         file.value = "";
     },
     
-    renderInputBar: function() {
-        console.log("show emoji:", this.state.showEmoji);
-        return (
-            <div id="MessageForm" className="">
-                <div id="MessageForm-header">
-                    <div className="MessageForm-tool">
-                        <i onClick={this.onEmoji}
-                           className="iconfont-smile"></i>
 
-                        {this.state.showEmoji ? this.renderEmoji() : null}
-                    </div>
-                    <div className="MessageForm-tool">
-                        <i className="screen_shot"
-                           id="screen_shot"
-                           style={{
-                               position: 'relative',
-                               "zIndex": 1
-                           }}
-                           onClick={this.onClipboard}></i>
-                    </div>
-                    <div className="MessageForm-tool">
-                        <i className="iconfont-upload"
-                           id="upload-image"
-                           style={{
-                               position: 'relative',
-                               "zIndex": 1
-                           }}>
-                        </i>
-
-                        <div className="moxie-shim moxie-shim-html5"
-                             style={{position: 'absolute',
-                                     top: "5px",
-                                     left: "0px",
-                                     width: "20px",
-                                     height: "15px",
-                                     overflow: "hidden",
-                                     "zIndex": 2}}>
-                            <input type="file"
-                                   id="image"
-                                   onChange={this.onImageChange}
-                                   style={{
-                                       fontSize: "999px",
-                                       opacity: 0,
-                                       position: "absolute",
-                                       top: "0px",
-                                       left: "0px",
-                                       width: "100%",
-                                       height: "100%"}}
-                                   multiple=""
-                                   accept="image/jpeg,image/gif,image/png">
-                            </input>
-                        </div>
-                    </div>
-                    <div className="MessageForm-tool">
-                        <i className="file_shot"
-                           id="upload-file"
-                           style={{
-                               position: 'relative',
-                               "zIndex": 1}}>
-                        </i>
-
-                        <div className="moxie-shim moxie-shim-html5"
-                             style={{position: 'absolute',
-                                     top: "5px",
-                                     left: "0px",
-                                     width: "20px",
-                                     height: "15px",
-                                     overflow: "hidden",
-                                     "zIndex": 2}}>
-                            <input type="file"
-                                   id="file"
-                                   onChange={this.onFileChange}
-                                   style={{
-                                       fontSize: "999px",
-                                       opacity: 0,
-                                       position: "absolute",
-                                       top: "0px",
-                                       left: "0px",
-                                       width: "100%",
-                                       height: "100%"}}
-                                   multiple=""
-                                   accept="">
-                            </input>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
-        );
-    },
-    
     renderMessage: function() {
         var name = this.props.conversation.name;
         var avatar = this.props.conversation.avatar;
@@ -1078,7 +832,6 @@ var AppContent = React.createClass({
         
         return (
             <div className="main pane pane-chat" id="main">
-
                 
                 <div className={"intro" + (this.props.conversation.cid ? " hide" : "")} id="intro">
                     请选择联系人
@@ -1088,32 +841,37 @@ var AppContent = React.createClass({
                     <img src={avatar} id="to_user_avatar" className="avatar" alt=""/>
                     <div className="name" id="to_user">{name}</div>
                 </div>
-                <ChatHistory/>
-                <div className="chat-form pane-chat-footer">
-                    {this.renderInputBar()}
-                    <textarea onKeyPress={this.onKeyPress} id="entry" className="chat-input"></textarea>
-                </div>
+                <ChatHistory ref={(chat) => { this.chat = chat; }}
+                             imDB={this.imDB}
+                             groupDB={this.groupDB}/>
+
+                <InputBar
+                    ref={(input) => { this.inputBar = input; }}
+                    onImageChange={this.onImageChange}
+                    onClipboard={this.onClipboard}
+                    onFileChange={this.onFileChange}
+                    sendTextMessage={this.sendTextMessage}
+                    showEmoji={this.state.showEmoji} />
             </div>
         );
     },
 
     renderContact: function() {
-        var avatar = this.props.contact.avatar;
+        var avatar = this.state.contact.avatar;
         if (!avatar) {
             avatar = "images/_avatar.png";
         }
         
         return (
             <div className="main pane pane-chat" id="main">
-
                 
-                <div className={"intro" + (this.props.contact.uid ? " hide" : "")} id="intro">
+                <div className={"intro" + (this.state.contact.uid ? " hide" : "")} id="intro">
                     请选择联系人
                 </div>
 
                 <div className="contact">
                     <div className="header">
-                        <span>{this.props.contact.name}</span>
+                        <span>{this.state.contact.name}</span>
                         <img src={avatar} className="avatar"/>
                     </div>
                     <div className="line">
@@ -1200,7 +958,6 @@ var AppContent = React.createClass({
     },
     
     onDocumentClick: function() {
-        console.log("on document click...");
         this.setState({
             showEmoji:false
         });
@@ -1226,8 +983,14 @@ var AppContent = React.createClass({
                     </div>
                     
 
-                    {this.state.showConversation ? <ConversationList imDB={this.imDB} groupDB={this.groupDB}/> : null}
-                    {this.state.showContact ? <ContactList/> : null}
+                    {this.state.showConversation ?
+                     <ConversationList
+                         onConversationClick={this.onConversationClick}
+                         imDB={this.imDB}
+                         groupDB={this.groupDB}/> : null}
+                    {this.state.showContact ?
+                     <ContactList contacts={this.state.contacts}
+                                  onContactClick={this.onContactItemClick} /> : null}
 
                 </div>
 

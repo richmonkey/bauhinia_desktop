@@ -15,18 +15,7 @@ var ContactList = React.createClass({
     },
 
     onClick: function(uid, e) {
-        var users = this.props.contacts;
-
-        var u = users.find((item) => {
-            return (item.uid == uid);
-        });
-
-        if (!u) {
-            return;
-        }
-
-        //设置当前选择的联系人
-        this.props.dispatch({type:"set_contact", contact:u});
+        this.props.onContactClick(uid);
     },
     
     render: function() {
@@ -43,10 +32,7 @@ var ContactList = React.createClass({
                 name = helper.getPhone(user.uid);
             }
 
-            var active = false;
-            if (user.uid == this.props.contact.uid) {
-                active = true;
-            }
+            var active = user.active;
             
             var t = (
                 <li className={active?"active":""} onClick={this.onClick.bind(this, user.uid)}
@@ -70,7 +56,4 @@ var ContactList = React.createClass({
 });
 
 
-var ContactList = connect(function(state) {
-    return state;
-})(ContactList);
 module.exports = ContactList;

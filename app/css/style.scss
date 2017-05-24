@@ -591,7 +591,7 @@ ul, ol, li {
 }
 
 
-.chatList.badge{
+.chatList .badge{
     color: #f60;
     position: absolute;
     right: 10px;
@@ -601,7 +601,7 @@ ul, ol, li {
     font-weight: 700;
 }
 
-.chatList.timer{color: #8e969f}
+.chatList .timer{color: #8e969f}
 
                 
 .chat_item {
@@ -617,11 +617,11 @@ ul, ol, li {
     margin: 0;
 }
 
-.chat_item.online {
+.chat_item .online {
     opacity: 1;
 }
 
-.chat_item.offline {
+.chat_item .offline {
     opacity: .3;
 }
 

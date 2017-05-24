@@ -57,7 +57,7 @@ function createMainWindow() {
     //mainWindow.loadUrl("http://dev.gobelieve.io/");
     mainWindow.loadURL('file://' + __dirname + '/index.html');
 
-    //mainWindow.openDevTools();
+    mainWindow.openDevTools();
 
     mainWindow.on('closed', function() {
         mainWindow = null;

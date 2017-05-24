@@ -482,7 +482,7 @@ ul, ol, li {
 .chatList.timeBoundary {
   margin-left: 5px; }
 
-.chatList.badge {
+.chatList .badge {
   color: #f60;
   position: absolute;
   right: 10px;
@@ -491,7 +491,7 @@ ul, ol, li {
   margin-left: 8px;
   font-weight: 700; }
 
-.chatList.timer {
+.chatList .timer {
   color: #8e969f; }
 
 .chat_item {
@@ -505,10 +505,10 @@ ul, ol, li {
 .chat_item p {
   margin: 0; }
 
-.chat_item.online {
+.chat_item .online {
   opacity: 1; }
 
-.chat_item.offline {
+.chat_item .offline {
   opacity: .3; }
 
 .chat_item .photo {
